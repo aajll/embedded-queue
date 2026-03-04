@@ -42,7 +42,7 @@ typedef struct {
         uint8_t data[8];
 } can_msg_t;
 
-QUEUE_DEFINE(can_msg_queue, can_msg_t, 16)
+QUEUE_DEFINE(can_msg_queue, can_msg_t, 16) /* validated at compile time */
 
 void example(void)
 {
@@ -75,12 +75,28 @@ void example(void)
   - Define these macros (e.g., disable/enable interrupts) if producer/consumer
     can preempt each other (ISR vs main loop).
 
+- `QUEUE_MAX_CAPACITY` (default `SIZE_MAX - 1U`)
+  - Compile-time guard used by `QUEUE_DEFINE(..., capacity)`.
+  - `capacity` must satisfy `capacity <= QUEUE_MAX_CAPACITY` and `capacity < SIZE_MAX` (because the internal ring size is `capacity + 1U`).
+  - If you want a stricter project-wide limit (e.g., to cap RAM usage), override this macro before including `queue.h`.
+
+- Memory ordering fences
+  - By default the queue uses fences to reduce the risk of reordering on weakly-ordered CPUs.
+  - You can override these macros before including `queue.h`:
+    - `QUEUE_FENCE_ACQUIRE()`
+    - `QUEUE_FENCE_RELEASE()`
+    - `QUEUE_FENCE_SEQ_CST()`
+  - `QUEUE_BARRIER()` remains available for compatibility and maps to `QUEUE_FENCE_SEQ_CST()`.
+  - If your toolchain does not support C11 atomics or GCC/Clang `__atomic_thread_fence`, you must provide fence implementations (or explicitly accept the concurrency limitations).
+
 ## Concurrency
 
 This library is designed for Single-Producer Single-Consumer (SPSC) use cases.
 
-1. **Fail-on-full mode**: Generally lock-free on architectures where `size_t` access is atomic. Internal memory barriers are included.
-2. **Overwrite-on-full mode**: **NOT lock-free**. The producer and consumer both modify the `tail` index. You **must** provide `QUEUE_ENTER_CRITICAL` and `QUEUE_EXIT_CRITICAL` implementations (e.g., disabling interrupts) if there is preemption between the producer and consumer.
+1. **Fail-on-full mode**: Lock-free for SPSC when `size_t` loads/stores are atomic on your target and your fence implementation provides the required memory ordering.
+   - `name##_count()` is not a stable snapshot under concurrency, but it should remain within `[0, capacity]`.
+2. **Overwrite-on-full mode**: **NOT lock-free**. The producer and consumer both modify the `tail` index.
+   - You **must** provide `QUEUE_ENTER_CRITICAL` and `QUEUE_EXIT_CRITICAL` implementations (e.g., disabling interrupts) if there is preemption between the producer and consumer.
 
 ## Build & Test
 
@@ -94,6 +110,9 @@ meson test -C build queue:queue_test_overwrite --print-errorlogs
 
 # run a single test (fail-on-full)
 meson test -C build queue:queue_test_fail --print-errorlogs
+
+# run the multithreaded count() bounds regression test
+meson test -C build queue:queue_test_count_mt --print-errorlogs
 ```
 
 ## Formatting

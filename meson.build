@@ -1,5 +1,5 @@
 project('queue', 'c', 
-        version : '1.1.2',
+        version : '1.1.3',
         default_options : ['c_std=c11'])
 
 v_arr = meson.project_version().split('.')
