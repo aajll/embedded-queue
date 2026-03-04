@@ -74,3 +74,20 @@ critical_exe = executable(
   link_with: [queue_lib],
 )
 test('queue_test_critical', critical_exe)
+
+safety_exe = executable(
+  'queue_test_safety',
+  'test_queue_safety.c',
+  include_directories: inc,
+  link_with: [queue_lib],
+)
+test('queue_test_safety', safety_exe)
+
+count_mt_exe = executable(
+  'queue_test_count_mt',
+  'test_queue_count_mt.c',
+  include_directories: inc,
+  dependencies: [thread_dep],
+  link_with: [queue_lib],
+)
+test('queue_test_count_mt', count_mt_exe)
