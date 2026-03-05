@@ -7,14 +7,14 @@
  * snapshot under concurrency, but it should always remain within [0, capacity]
  * when head and tail are read exactly once.
  */
-
 #define QUEUE_OVERWRITE_ON_FULL 0
-
-#include "queue.h"
-
 #include <assert.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include <stdio.h>
+#include "queue_conf.h"
+#include "queue.h"
+
 #include <stdio.h>
 
 #define MT_COUNT 200000

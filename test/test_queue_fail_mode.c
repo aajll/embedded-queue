@@ -1,7 +1,8 @@
 #define QUEUE_OVERWRITE_ON_FULL 0
-#include "queue.h"
 #include <assert.h>
 #include <stdio.h>
+#include "queue_conf.h"
+#include "queue.h"
 
 typedef int elem_t;
 QUEUE_DEFINE(fail_q, elem_t, 2)

@@ -1,6 +1,7 @@
-#include "queue.h"
 #include <assert.h>
 #include <stdio.h>
+#include "queue_conf.h"
+#include "queue.h"
 
 QUEUE_DEFINE(soak_queue, int, 7)
 

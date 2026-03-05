@@ -1,8 +1,9 @@
 /* test_queue_safety.c - Tests for the fixed safety issues */
-#include "queue.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
+#include "queue_conf.h"
+#include "queue.h"
 
 /* Test 1: Normal capacity should work */
 QUEUE_DEFINE(test_normal_q, int, 10)

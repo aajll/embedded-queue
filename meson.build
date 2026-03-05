@@ -13,11 +13,11 @@ conf_data.set('MAJOR', major)
 conf_data.set('MINOR', minor)
 conf_data.set('PATCH', patch)
 
-configure_file(input : 'src/queue_version.h.in',
+configure_file(input : 'config/queue_version.h.in',
                output : 'queue_version.h',
                configuration : conf_data)
 
-inc = include_directories('src', '.')
+inc = include_directories('include', 'config', '.')
 
 queue_lib = both_libraries('queue',
                         'src/queue.c',

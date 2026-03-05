@@ -1,13 +1,12 @@
 /* test_queue_critical.c */
 #define QUEUE_OVERWRITE_ON_FULL 1
-
 /* Redefine the critical-section macros to count usage */
 #define QUEUE_ENTER_CRITICAL()  ++critical_enter_cnt
 #define QUEUE_EXIT_CRITICAL()   ++critical_exit_cnt
-
-#include "queue.h"
 #include <assert.h>
 #include <stdio.h>
+#include "queue_conf.h"
+#include "queue.h"
 
 static unsigned critical_enter_cnt = 0;
 static unsigned critical_exit_cnt = 0;

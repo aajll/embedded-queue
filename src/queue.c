@@ -1,3 +1,4 @@
+#include "queue_conf.h"
 #include "queue.h"
 
 /*

@@ -1,7 +1,8 @@
-#include "../src/queue.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "queue_conf.h"
+#include "queue.h"
 
 typedef struct {
         uint32_t id;

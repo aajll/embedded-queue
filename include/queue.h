@@ -1,8 +1,6 @@
 /*
- * queue.h
- *
- * MISRA-oriented, single-producer/single-consumer (SPSC) typed ring-buffer
- * queue.
+ * queue.h - MISRA-oriented, single-producer/single-consumer (SPSC) typed
+ * ring-buffer queue.
  *
  * - No dynamic allocation: storage is embedded in the queue instance.
  * - Designed for embedded MCUs.
@@ -34,7 +32,6 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-#include "queue_version.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -44,87 +41,50 @@
 #error "SIZE_MAX not defined - requires <stdint.h> or <limits.h>"
 #endif
 
+/* Verify configuration macros are defined */
+#ifndef QUEUE_OVERWRITE_ON_FULL
+#error                                                                         \
+    "QUEUE_OVERWRITE_ON_FULL not defined - include <queue_conf.h> before <queue.h>"
+#endif
+
+#ifndef QUEUE_MAX_CAPACITY
+#error                                                                         \
+    "QUEUE_MAX_CAPACITY not defined - include <queue_conf.h> before <queue.h>"
+#endif
+
+#ifndef QUEUE_FENCE_ACQUIRE
+#error                                                                         \
+    "QUEUE_FENCE_ACQUIRE not defined - include <queue_conf.h> before <queue.h>"
+#endif
+
+#ifndef QUEUE_FENCE_RELEASE
+#error                                                                         \
+    "QUEUE_FENCE_RELEASE not defined - include <queue_conf.h> before <queue.h>"
+#endif
+
+#ifndef QUEUE_FENCE_SEQ_CST
+#error                                                                         \
+    "QUEUE_FENCE_SEQ_CST not defined - include <queue_conf.h> before <queue.h>"
+#endif
+
+#ifndef QUEUE_ENTER_CRITICAL
+#error                                                                         \
+    "QUEUE_ENTER_CRITICAL not defined - include <queue_conf.h> before <queue.h>"
+#endif
+
+#ifndef QUEUE_EXIT_CRITICAL
+#error                                                                         \
+    "QUEUE_EXIT_CRITICAL not defined - include <queue_conf.h> before <queue.h>"
+#endif
+
+#ifndef QUEUE_BARRIER
+#error "QUEUE_BARRIER not defined - include <queue_conf.h> before <queue.h>"
+#endif
+
 #if defined(__GNUC__) || defined(__clang__)
 #define QUEUE__UNUSED __attribute__((unused))
 #else
 #define QUEUE__UNUSED
-#endif
-
-#ifndef QUEUE_OVERWRITE_ON_FULL
-#define QUEUE_OVERWRITE_ON_FULL 1
-#endif
-
-/* Maximum valid capacity to prevent overflow in ring_size calculation */
-#ifndef QUEUE_MAX_CAPACITY
-#define QUEUE_MAX_CAPACITY (SIZE_MAX - 1U)
-#endif
-
-/*
- * Memory ordering fences.
- *
- * Users may override by defining QUEUE_FENCE_ACQUIRE/RELEASE/SEQ_CST.
- */
-#ifndef QUEUE_FENCE_ACQUIRE
-#if defined(__GNUC__) || defined(__clang__)
-#define QUEUE_FENCE_ACQUIRE() __atomic_thread_fence(__ATOMIC_ACQUIRE)
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)               \
-    && !defined(__STDC_NO_ATOMICS__)
-#include <stdatomic.h>
-#define QUEUE_FENCE_ACQUIRE() atomic_thread_fence(memory_order_acquire)
-#else
-#define QUEUE_FENCE_ACQUIRE()                                                  \
-        do {                                                                   \
-        } while (0)
-#endif
-#endif
-
-#ifndef QUEUE_FENCE_RELEASE
-#if defined(__GNUC__) || defined(__clang__)
-#define QUEUE_FENCE_RELEASE() __atomic_thread_fence(__ATOMIC_RELEASE)
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)               \
-    && !defined(__STDC_NO_ATOMICS__)
-#include <stdatomic.h>
-#define QUEUE_FENCE_RELEASE() atomic_thread_fence(memory_order_release)
-#else
-#define QUEUE_FENCE_RELEASE()                                                  \
-        do {                                                                   \
-        } while (0)
-#endif
-#endif
-
-#ifndef QUEUE_FENCE_SEQ_CST
-#if defined(__GNUC__) || defined(__clang__)
-#define QUEUE_FENCE_SEQ_CST() __atomic_thread_fence(__ATOMIC_SEQ_CST)
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)               \
-    && !defined(__STDC_NO_ATOMICS__)
-#include <stdatomic.h>
-#define QUEUE_FENCE_SEQ_CST() atomic_thread_fence(memory_order_seq_cst)
-#else
-#if defined(__GNUC__) || defined(__clang__)
-#define QUEUE_FENCE_SEQ_CST() __asm__ volatile("" : : : "memory")
-#else
-#define QUEUE_FENCE_SEQ_CST()                                                  \
-        do {                                                                   \
-        } while (0)
-#endif
-#endif
-#endif
-
-/* Backwards-compatible barrier name. */
-#ifndef QUEUE_BARRIER
-#define QUEUE_BARRIER() QUEUE_FENCE_SEQ_CST()
-#endif
-
-#ifndef QUEUE_ENTER_CRITICAL
-#define QUEUE_ENTER_CRITICAL()                                                 \
-        do {                                                                   \
-        } while (0)
-#endif
-
-#ifndef QUEUE_EXIT_CRITICAL
-#define QUEUE_EXIT_CRITICAL()                                                  \
-        do {                                                                   \
-        } while (0)
 #endif
 
 typedef enum {

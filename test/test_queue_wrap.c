@@ -1,6 +1,7 @@
-#include "queue.h"
 #include <assert.h>
 #include <stdio.h>
+#include "queue_conf.h"
+#include "queue.h"
 
 typedef int elem_t;
 QUEUE_DEFINE(wrap_q, elem_t, 4)

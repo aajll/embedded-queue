@@ -1,8 +1,9 @@
 #define QUEUE_OVERWRITE_ON_FULL 0
-#include "queue.h"
 #include <assert.h>
 #include <pthread.h>
 #include <stdio.h>
+#include "queue_conf.h"
+#include "queue.h"
 
 #define MT_COUNT 1000000
 QUEUE_DEFINE(mt_queue, int, 1024)

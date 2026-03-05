@@ -1,14 +1,14 @@
 #include <pthread.h>
-
 static pthread_mutex_t mt_lock = PTHREAD_MUTEX_INITIALIZER;
 #define QUEUE_ENTER_CRITICAL()  pthread_mutex_lock(&mt_lock)
 #define QUEUE_EXIT_CRITICAL()   pthread_mutex_unlock(&mt_lock)
-
 #define QUEUE_OVERWRITE_ON_FULL 1
-#include "queue.h"
+#include <pthread.h>
 #include <assert.h>
 #include <stdatomic.h>
 #include <stdio.h>
+#include "queue_conf.h"
+#include "queue.h"
 
 #define MT_COUNT 1000000
 QUEUE_DEFINE(mt_queue, int, 10)
