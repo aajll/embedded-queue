@@ -1,7 +1,7 @@
 project(
   'queue',
   'c',
-  version: '1.2.3',
+  version: '1.2.4',
   default_options: ['c_std=c11', 'warning_level=2'],
   license: 'MIT',
 )
@@ -36,7 +36,7 @@ queue_lib = both_libraries(
   include_directories: queue_inc,
 )
 
-queue_deb = declare_dependency(include_directories: queue_inc, link_with: queue_lib)
+queue_dep = declare_dependency(include_directories: queue_inc, link_with: queue_lib)
 
 if get_option('build_tests')
   subdir('tests')
