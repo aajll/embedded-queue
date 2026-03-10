@@ -1,7 +1,7 @@
 project(
   'queue',
   'c',
-  version: '1.2.4',
+  version: '1.2.5',
   default_options: ['c_std=c11', 'warning_level=2'],
   license: 'MIT',
 )
