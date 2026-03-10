@@ -1,23 +1,82 @@
 # AGENTS.md
 
-## Build / Test
-- Configure: `meson setup build` (use `--wipe` to reset)
-- Build: `meson compile -C build`
-- All tests: `meson test -C build`
-- Single test (overwrite): `meson test -C build queue:queue_test_overwrite --print-errorlogs`
-- Single test (fail-on-full): `meson test -C build queue:queue_test_fail --print-errorlogs`
+---
 
-## Lint / Format
-- Lint: `clang-tidy -p build src/queue.c test/*.c` (uses `build/compile_commands.json`)
-- Format: `clang-format -i src/*.c src/*.h test/*.c` (uses `.clang-format`)
+## 1) Project-specific instructions
 
-## Code Style
-- C11 APIs; prefer `size_t` and `bool`; be explicit about thread-safety
-- Naming: functions `snake_case`; generated queue types `foo_queue_t`
-- Includes: project headers first, then standard headers; keep includes minimal
-- Errors: return status codes (`queue_status_t`); avoid `abort()` in library code
-- Headers: `#ifndef/#define/#endif` guards; keep public API in `src/queue.h`. Note that `src/queue_version.h` is a generated file.
-- Versioning: Managed via `project(version: ...)` in `meson.build`.
+**Project:** `queue`
+**Primary goal:**  A small C11, embedded-oriented queue implemented as a typed ring buffer.
 
-## Agent Rules
-- No Cursor/Copilot rules found (`.cursor/rules/`, `.cursorrules`, `.github/copilot-instructions.md`).
+### 1.1 Essential commands
+
+#### Configure and build (library only)
+
+```sh
+meson setup build --wipe --buildtype=release -Dbuild_tests=false
+meson compile -C build
+```
+
+#### Configure, build, and run unit tests
+
+```sh
+meson setup build --wipe --buildtype=debug -Dbuild_tests=true
+meson compile -C build
+meson test -C build --verbose
+```
+
+#### Notes
+
+- `meson setup` generates the optional `queue_version.h` into the **build directory**.
+
+---
+
+## 2) CI / source of truth
+
+- CI definitions live in `.github/workflows/ci.yml`.
+- Prefer running the same commands locally as CI runs (see §1.1 above).
+- If `pre-commit` is configured, run `pre-commit run --all-files` before
+  committing.
+
+---
+
+## 3) Docs / commit conventions
+
+- Use **Conventional Commits** format when asked to commit.
+- Keep commits focused; explain *why* in the message body.
+
+---
+
+## 4) C style expectations
+
+### Build & configuration
+
+- Use the Meson build system. Do not introduce CMake, Make, or other systems.
+- Update `src/meson.build` when adding or removing source files.
+
+### Formatting
+
+- `.clang-format` is present and **mandatory**. Run `clang-format -i` on all
+  modified `.c` / `.h` files before committing.
+- Do not reformat unrelated code.
+- Key settings: 8-space indent, `BreakBeforeBraces: Linux`, column limit 80.
+
+### Style & correctness
+
+- Match conventions in the existing files (indentation, braces, naming).
+- Validate pointer arguments at every public API boundary.
+- No heap allocation (`malloc` / `free` / VLAs).
+- Use `uint32_t`, `uint16_t`, `int16_t`, `bool` from `<stdint.h>` /
+  `<stdbool.h>` — never plain `int` for fixed-width fields.
+
+### Error handling
+
+- Public functions return `bool` or validate via early `return`.
+- No `errno`; no exceptions.
+
+### Testing
+
+- Run `meson test -C build` after every change.
+- Add a test case for each bug fix.
+- Tests live in `tests/test_*.c`; all tests must pass.
+
+---

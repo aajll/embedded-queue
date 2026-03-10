@@ -1,28 +1,43 @@
-project('queue', 'c', 
-        version : '1.1.3',
-        default_options : ['c_std=c11'])
+project(
+  'queue',
+  'c',
+  version: '1.2.3',
+  default_options: ['c_std=c11', 'warning_level=2'],
+  license: 'MIT',
+)
 
-v_arr = meson.project_version().split('.')
-major = v_arr[0]
-minor = v_arr[1]
-patch = v_arr[2]
+ver = meson.project_version().split('.')
 
-conf_data = configuration_data()
-conf_data.set('VERSION', meson.project_version())
-conf_data.set('MAJOR', major)
-conf_data.set('MINOR', minor)
-conf_data.set('PATCH', patch)
+conf = configuration_data()
+conf.set_quoted('VERSION', meson.project_version())
 
-configure_file(input : 'config/queue_version.h.in',
-               output : 'queue_version.h',
-               configuration : conf_data)
+major = ver[0].to_int()
+minor = ver[1].to_int()
+patch = ver[2].to_int()
 
-inc = include_directories('include', 'config', '.')
+conf.set('MAJOR', major)
+conf.set('MINOR', minor)
+conf.set('PATCH', patch)
 
-queue_lib = both_libraries('queue',
-                        'src/queue.c',
-                        version: meson.project_version(),
-                        soversion: major,
-                        include_directories: inc)
+configure_file(
+  input: 'config/queue_version.h.in',
+  output: 'queue_version.h',
+  configuration: conf,
+)
 
-subdir('test')
+queue_inc = include_directories('include', 'config')
+queue_src = ['src/queue.c']
+
+queue_lib = both_libraries(
+  'queue',
+  queue_src,
+  version: meson.project_version(),
+  soversion: major,
+  include_directories: queue_inc,
+)
+
+queue_deb = declare_dependency(include_directories: queue_inc, link_with: queue_lib)
+
+if get_option('build_tests')
+  subdir('tests')
+endif
