@@ -91,3 +91,44 @@ count_mt_exe = executable(
   link_with: [queue_lib],
 )
 test('queue_test_count_mt', count_mt_exe)
+
+queue_test_capacity_1_exe = executable(
+  'queue_test_capacity_1',
+  'test_queue_capacity_1.c',
+  include_directories: queue_inc,
+  link_with: [queue_lib],
+)
+test('queue_test_capacity_1', queue_test_capacity_1_exe)
+
+queue_test_immediate_dequeue_exe = executable(
+  'queue_test_immediate_dequeue',
+  'test_queue_immediate_dequeue.c',
+  include_directories: queue_inc,
+  link_with: [queue_lib],
+  c_args: ['-DQUEUE_OVERWRITE_ON_FULL=0'],
+)
+test('queue_test_immediate_dequeue', queue_test_immediate_dequeue_exe)
+
+queue_test_exact_capacity_exe = executable(
+  'queue_test_exact_capacity',
+  'test_queue_exact_capacity.c',
+  include_directories: queue_inc,
+  link_with: [queue_lib],
+)
+test('queue_test_exact_capacity', queue_test_exact_capacity_exe)
+
+queue_test_empty_after_cycles_exe = executable(
+  'queue_test_empty_after_cycles',
+  'test_queue_empty_after_cycles.c',
+  include_directories: queue_inc,
+  link_with: [queue_lib],
+)
+test('queue_test_empty_after_cycles', queue_test_empty_after_cycles_exe)
+
+queue_test_null_validation_exe = executable(
+  'queue_test_null_validation',
+  'test_queue_null_validation.c',
+  include_directories: queue_inc,
+  link_with: [queue_lib],
+)
+test('queue_test_null_validation', queue_test_null_validation_exe)
