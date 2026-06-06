@@ -1,6 +1,11 @@
-/*
- * queue.h - MISRA-oriented, single-producer/single-consumer (SPSC) typed
- * ring-buffer queue.
+/**
+ * SPDX-License-Identifier: MIT
+ *
+ * @file: queue.h
+ *
+ * @brief
+ *    MISRA-oriented, single-producer/single-consumer (SPSC) typed ring-buffer
+ *    queue.
  *
  * - No dynamic allocation: storage is embedded in the queue instance.
  * - Designed for embedded MCUs.

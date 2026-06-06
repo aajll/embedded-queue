@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+
 #ifndef QUEUE_VERSION_H
 #define QUEUE_VERSION_H
 
@@ -6,4 +8,4 @@
 #define QUEUE_VERSION_MINOR @MINOR@
 #define QUEUE_VERSION_PATCH @PATCH@
 
-#endif // QUEUE_VERSION_H
+#endif /* QUEUE_VERSION_H */
