@@ -1,8 +1,11 @@
-/*
- * queue_conf.h
+/**
+ * SPDX-License-Identifier: MIT
  *
- * User configuration header for the queue library.
- * Include this file before queue_impl.h to customize behavior.
+ * @file: queue_conf.h
+ *
+ * @brief
+ *    User configuration header for the queue library.
+ *    Include this file before queue.h to customize behavior.
  */
 
 #ifndef QUEUE_CONF_H

@@ -1,5 +1,7 @@
 # embedded-queue
 
+[![CI](https://github.com/aajll/embedded-queue/actions/workflows/ci.yml/badge.svg)](https://github.com/aajll/embedded-queue/actions/workflows/ci.yml)
+
 A deterministic, type-safe SPSC ring-buffer queue in C11 for embedded and safety-critical systems.
 
 ## Features
