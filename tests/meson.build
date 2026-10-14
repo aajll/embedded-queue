@@ -153,3 +153,13 @@ foreach t : [
   )
   test(t[0], exe)
 endforeach
+
+# A consumer-defined QUEUE__UNUSED must not trigger a redefinition warning.
+queue_test_unused_override_exe = executable(
+  'queue_test_unused_override',
+  'test_queue_unused_override.c',
+  include_directories: public_headers,
+  link_with: [queue_lib],
+  c_args: ['-Werror', '-Wunused-function'],
+)
+test('queue_test_unused_override', queue_test_unused_override_exe)

@@ -82,14 +82,27 @@
     "QUEUE_EXIT_CRITICAL not defined - include <queue_conf.h> before <queue.h>"
 #endif
 
-#ifndef QUEUE_BARRIER
-#error "QUEUE_BARRIER not defined - include <queue_conf.h> before <queue.h>"
-#endif
-
-#if defined(__GNUC__) || defined(__clang__)
+/*
+ * QUEUE__UNUSED marks every static inline function in this header and every
+ * wrapper QUEUE_DEFINE generates. A consumer usually calls only some of them,
+ * and the marker keeps the rest from raising unused-function diagnostics:
+ *
+ *   - Clang warns about unused static inline functions defined in the file
+ *     being compiled, which is where QUEUE_DEFINE expands.
+ *   - TI compilers warn (#179-D) about any unused static function, inline or
+ *     not. They do not define __GNUC__ but accept the GNU attribute.
+ *   - GCC does not warn; the attribute is harmless there.
+ *
+ * Other compilers get an empty marker, which can cost warnings but never a
+ * failed build. To supply a marker for another toolchain, define
+ * QUEUE__UNUSED before including this header.
+ */
+#ifndef QUEUE__UNUSED
+#if defined(__GNUC__) || defined(__clang__) || defined(__TI_COMPILER_VERSION__)
 #define QUEUE__UNUSED __attribute__((unused))
 #else
 #define QUEUE__UNUSED
+#endif
 #endif
 
 /*

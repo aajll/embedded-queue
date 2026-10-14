@@ -99,7 +99,7 @@
 #define QUEUE_FENCE_SEQ_CST() QUEUE__DEFAULT_FENCE_SEQ_CST()
 #endif
 
-/* Backwards-compatible barrier name */
+/* Deprecated alias of QUEUE_FENCE_SEQ_CST; the queue does not use it */
 #ifndef QUEUE_BARRIER
 #define QUEUE_BARRIER() QUEUE_FENCE_SEQ_CST()
 #endif
