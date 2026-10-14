@@ -110,7 +110,7 @@ the header or passed as `-D` flags on the compiler command line.
 | `QUEUE_USE_GNU_ATOMICS` / `QUEUE_USE_C11_ATOMICS` / `QUEUE_USE_NO_ATOMICS` | Define one to force the index backend. `QUEUE_USE_NO_ATOMICS` is correct only where an aligned `size_t` access is indivisible and the fences below give the ordering the target needs, such as a single-core MCU. | first available of `__atomic`, `<stdatomic.h>`, volatile |
 | `QUEUE_FENCE_ACQUIRE()` | Acquire memory fence, used by the volatile backend. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
 | `QUEUE_FENCE_RELEASE()` | Release memory fence, used by the volatile backend. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
-| `QUEUE_FENCE_SEQ_CST()` | Sequential-consistency fence. Also aliased as `QUEUE_BARRIER()`. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
+| `QUEUE_FENCE_SEQ_CST()` | Sequential-consistency fence. `QUEUE_BARRIER()` is a deprecated alias. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
 
 ## Building
 
@@ -132,6 +132,7 @@ meson test -C build
 | **Memory** | All storage lives inside the queue instance. The instance must outlive any producer or consumer that references it. |
 | **Thread safety** | SPSC only. Multi-producer or multi-consumer use requires external locking. |
 | **Full policy** | Choose fail-on-full for lock-free SPSC; choose overwrite-on-full (with critical sections) for lossy sensor or logging pipelines where the newest data matters most. |
+| **Toolchains** | GCC, Clang and the TI C2000 compiler build without unused-function diagnostics when a consumer calls only some generated helpers. The TI compiler predefines `__STDC_NO_ATOMICS__`, so it selects the volatile backend. For another toolchain, define `QUEUE__UNUSED` before including `queue.h`. |
 | **Error handling** | All functions return `queue_status_t`; no `errno`, no exceptions. |
 | **WCET** | All operations are O(1) with no branching on the data path beyond the full/empty check. |
 | **`count()` under concurrency** | In fail-on-full lock-free mode, `count()` is not a stable snapshot but is guaranteed to remain within `[0, capacity]`. |
