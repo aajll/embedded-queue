@@ -28,7 +28,7 @@
  * REQUIRED if the producer and consumer can preempt each other (e.g., ISR and
  * Main).
  *
- * Safety considerations (IEC-61508 / MISRA):
+ * Safety considerations:
  * - Capacity must be <= QUEUE_MAX_CAPACITY and < SIZE_MAX (ring_size = cap + 1)
  * - Override QUEUE_MAX_CAPACITY to set a project-specific safe limit
  * - Memory barriers use C11 atomics for portability
