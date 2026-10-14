@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Renamed `LICENCE` to `LICENSE`, standardised copyright text, switched the library target to `static_library`, installed public headers, and aligned Meson defaults with the primitive family baseline.
+- Moved the queue logic out of `QUEUE_DEFINE` into type-erased core functions shared by every instantiation; the generated functions are typed wrappers that hold the critical section around each call. `head` and `tail` now live in a `core` member of the generated type, and the critical-section hooks also run for calls rejected with `QUEUE_STATUS_BAD_ARG`.
 
 ### Fixed
 
