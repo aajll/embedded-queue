@@ -114,8 +114,7 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Code coverage gate. Builds with gcov instrumentation, runs the full
-  # test suite, and fails the job if line or branch coverage drops below
-  # the threshold.
+  # test suite, and fails the job unless line and branch coverage are 100%.
   # ---------------------------------------------------------------------------
   coverage:
     name: "Coverage gate"
@@ -135,12 +134,15 @@ jobs:
       - name: Install meson and gcovr
         run: pip install meson gcovr
 
+      # The multi-threaded tests update the same gcov counters from several
+      # threads; atomic updates keep the arc counts consistent.
       - name: Configure (coverage)
         run: >
           meson setup build
           --buildtype=debug
           -Dbuild_tests=true
           -Db_coverage=true
+          -Dc_args=-fprofile-update=atomic
 
       - name: Build
         run: meson compile -C build
@@ -158,8 +160,8 @@ jobs:
             --html-details coverage-report/index.html \
             --txt coverage-report/summary.txt \
             --print-summary \
-            --fail-under-line 80 \
-            --fail-under-branch 70
+            --fail-under-line 100 \
+            --fail-under-branch 100
 
       - name: Upload coverage report
         if: always()
