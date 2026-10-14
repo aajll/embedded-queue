@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- ThreadSanitizer CI job, and tests that force the C11 and volatile backends.
 - Added changelog, contributor guide, security policy, standard CI workflow, installed version header, pkg-config metadata, README badge, SPDX headers, and registration for the previously skipped `test_queue_clear` test.
 
 ### Changed
@@ -17,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `head` and `tail` are atomic, with acquire/release ordering between producer and consumer, so the SPSC path is free of data races under ThreadSanitizer. The backend follows the `__atomic`, `<stdatomic.h>`, volatile ladder and can be forced with `QUEUE_USE_*_ATOMICS`; a static assertion rejects targets where `size_t` atomics are not lock-free, which instead select `QUEUE_USE_NO_ATOMICS` with critical-section hooks. The C11 fallback now includes `<stdatomic.h>`.
 - `queue_version.h` now defines `QUEUE_VERSION` as a single string literal and `QUEUE_VERSION_MAJOR`, `_MINOR` and `_PATCH` as integers, so the macros compile when used.
 
 ## [1.2.4] - 2026-03-10

@@ -133,3 +133,23 @@ queue_test_null_validation_exe = executable(
   link_with: [queue_lib],
 )
 test('queue_test_null_validation', queue_test_null_validation_exe)
+
+# The default backend on GCC/Clang is __atomic. These force the C11 backend
+# for the concurrent tests and the volatile backend for single-threaded ones,
+# so every backend and its lock-free assertion is compiled and exercised.
+foreach t : [
+  ['queue_test_mt_c11', 'test_queue_mt.c', '-DQUEUE_USE_C11_ATOMICS=1', true],
+  ['queue_test_count_mt_c11', 'test_queue_count_mt.c', '-DQUEUE_USE_C11_ATOMICS=1', true],
+  ['queue_test_no_atomics', 'test_queue.c', '-DQUEUE_USE_NO_ATOMICS=1', false],
+  ['queue_test_fail_no_atomics', 'test_queue_fail.c', ['-DQUEUE_USE_NO_ATOMICS=1', '-DQUEUE_OVERWRITE_ON_FULL=0'], false],
+]
+  exe = executable(
+    t[0],
+    t[1],
+    include_directories: public_headers,
+    dependencies: t[3] ? [thread_dep] : [],
+    link_with: [queue_lib],
+    c_args: t[2],
+  )
+  test(t[0], exe)
+endforeach

@@ -14,13 +14,13 @@
  * Features:
  * - Compile-time capacity validation prevents integer overflow
  * - Consistent count() calculations using snapshots
- * - Proper memory barriers using C11 atomics for weakly-ordered architectures
+ * - Atomic head and tail indices with acquire/release ordering
  *
  * Concurrency notes:
  * - This is a Single-Producer Single-Consumer (SPSC) queue.
  * - In "Fail-on-full" mode (QUEUE_OVERWRITE_ON_FULL=0):
  *   - Lock-free for SPSC with proper memory ordering.
- *   - Uses atomic_thread_fence() for C11 platforms, compiler barrier otherwise.
+ *   - The indices use the atomic backend selected in queue_conf.h.
  * - In "Overwrite-on-full" mode (QUEUE_OVERWRITE_ON_FULL=1):
  *   - NOT lock-free! The producer modifies 'tail', which is also modified by
  * the consumer.
@@ -31,7 +31,6 @@
  * Safety considerations:
  * - Capacity must be <= QUEUE_MAX_CAPACITY and < SIZE_MAX (ring_size = cap + 1)
  * - Override QUEUE_MAX_CAPACITY to set a project-specific safe limit
- * - Memory barriers use C11 atomics for portability
  */
 
 #ifndef QUEUE_H
@@ -93,6 +92,71 @@
 #define QUEUE__UNUSED
 #endif
 
+/*
+ * Index access for the selected backend (see queue_conf.h). The producer
+ * publishes a slot with a release store of `head` and the consumer frees one
+ * with a release store of `tail`; each side reads the other's index with an
+ * acquire load, so slot contents never race with index updates.
+ */
+#if defined(QUEUE_USE_GNU_ATOMICS)
+#define QUEUE__ATOMIC
+#define QUEUE__LOAD_RELAXED(ptr) __atomic_load_n((ptr), __ATOMIC_RELAXED)
+#define QUEUE__LOAD_ACQUIRE(ptr) __atomic_load_n((ptr), __ATOMIC_ACQUIRE)
+#define QUEUE__STORE_RELAXED(ptr, val)                                         \
+        __atomic_store_n((ptr), (val), __ATOMIC_RELAXED)
+#define QUEUE__STORE_RELEASE(ptr, val)                                         \
+        __atomic_store_n((ptr), (val), __ATOMIC_RELEASE)
+#define QUEUE__FENCE_AFTER_ACQUIRE()                                           \
+        do {                                                                   \
+        } while (0)
+#define QUEUE__FENCE_BEFORE_RELEASE()                                          \
+        do {                                                                   \
+        } while (0)
+#elif defined(QUEUE_USE_C11_ATOMICS)
+#define QUEUE__ATOMIC _Atomic
+#define QUEUE__LOAD_RELAXED(ptr)                                               \
+        atomic_load_explicit((ptr), memory_order_relaxed)
+#define QUEUE__LOAD_ACQUIRE(ptr)                                               \
+        atomic_load_explicit((ptr), memory_order_acquire)
+#define QUEUE__STORE_RELAXED(ptr, val)                                         \
+        atomic_store_explicit((ptr), (val), memory_order_relaxed)
+#define QUEUE__STORE_RELEASE(ptr, val)                                         \
+        atomic_store_explicit((ptr), (val), memory_order_release)
+#define QUEUE__FENCE_AFTER_ACQUIRE()                                           \
+        do {                                                                   \
+        } while (0)
+#define QUEUE__FENCE_BEFORE_RELEASE()                                          \
+        do {                                                                   \
+        } while (0)
+#else /* QUEUE_USE_NO_ATOMICS */
+#define QUEUE__ATOMIC                  volatile
+#define QUEUE__LOAD_RELAXED(ptr)       (*(ptr))
+#define QUEUE__LOAD_ACQUIRE(ptr)       (*(ptr))
+#define QUEUE__STORE_RELAXED(ptr, val) ((void)(*(ptr) = (val)))
+#define QUEUE__STORE_RELEASE(ptr, val) ((void)(*(ptr) = (val)))
+#define QUEUE__FENCE_AFTER_ACQUIRE()   QUEUE_FENCE_ACQUIRE()
+#define QUEUE__FENCE_BEFORE_RELEASE()  QUEUE_FENCE_RELEASE()
+#endif
+
+#if defined(QUEUE_USE_GNU_ATOMICS)
+/* __atomic_always_lock_free is a compile-time constant but not a standard
+ * integer constant expression, so -Wpedantic objects to it inside
+ * _Static_assert; suppress only that diagnostic. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+_Static_assert(__atomic_always_lock_free(sizeof(size_t), 0),
+               "queue: size_t indices are not lock-free on this target");
+#pragma GCC diagnostic pop
+#elif defined(QUEUE_USE_C11_ATOMICS)
+/* atomic_is_lock_free is a runtime query, so match size_t to the
+ * ATOMIC_*_LOCK_FREE macro of the same width and require "always" (2). */
+_Static_assert(
+    (sizeof(size_t) == sizeof(int) && ATOMIC_INT_LOCK_FREE == 2)
+        || (sizeof(size_t) == sizeof(long) && ATOMIC_LONG_LOCK_FREE == 2)
+        || (sizeof(size_t) == sizeof(long long) && ATOMIC_LLONG_LOCK_FREE == 2),
+    "queue: size_t indices are not always lock-free on this target");
+#endif
+
 typedef enum {
         QUEUE_STATUS_OK = 0,   /* operation successful */
         QUEUE_STATUS_EMPTY,    /* dequeue attempted on empty queue */
@@ -109,8 +173,8 @@ typedef enum {
  * instantiation.
  */
 typedef struct {
-        volatile size_t head; /* next slot the producer writes */
-        volatile size_t tail; /* next slot the consumer reads */
+        QUEUE__ATOMIC size_t head; /* next slot the producer writes */
+        QUEUE__ATOMIC size_t tail; /* next slot the consumer reads */
 } queue_core_t;
 
 static inline QUEUE__UNUSED size_t
@@ -126,7 +190,10 @@ queue__next_index(size_t index, size_t ring_size)
 #if QUEUE_OVERWRITE_ON_FULL
 #define QUEUE__HANDLE_FULL(core, ring_size, status_var)                        \
         do {                                                                   \
-                (core)->tail = queue__next_index((core)->tail, (ring_size));   \
+                QUEUE__STORE_RELAXED(                                          \
+                    &(core)->tail,                                             \
+                    queue__next_index(QUEUE__LOAD_RELAXED(&(core)->tail),      \
+                                      (ring_size)));                           \
                 (status_var) = QUEUE_STATUS_OVERWROTE;                         \
         } while (0)
 #else
@@ -151,8 +218,8 @@ queue__init(void *queue)
                 return;
         }
         queue_core_t *core = (queue_core_t *)queue;
-        core->head = 0U;
-        core->tail = 0U;
+        QUEUE__STORE_RELAXED(&core->head, (size_t)0U);
+        QUEUE__STORE_RELAXED(&core->tail, (size_t)0U);
 }
 
 static inline QUEUE__UNUSED bool
@@ -162,8 +229,9 @@ queue__is_empty(const void *queue)
                 return true;
         }
         const queue_core_t *core = (const queue_core_t *)queue;
-        const size_t head = core->head;
-        const size_t tail = core->tail;
+        const size_t head = QUEUE__LOAD_ACQUIRE(&core->head);
+        const size_t tail = QUEUE__LOAD_ACQUIRE(&core->tail);
+        QUEUE__FENCE_AFTER_ACQUIRE();
         return head == tail;
 }
 
@@ -174,8 +242,9 @@ queue__is_full(const void *queue, size_t ring_size)
                 return false;
         }
         const queue_core_t *core = (const queue_core_t *)queue;
-        const size_t head = core->head;
-        const size_t tail = core->tail;
+        const size_t head = QUEUE__LOAD_ACQUIRE(&core->head);
+        const size_t tail = QUEUE__LOAD_ACQUIRE(&core->tail);
+        QUEUE__FENCE_AFTER_ACQUIRE();
         return queue__next_index(head, ring_size) == tail;
 }
 
@@ -187,8 +256,9 @@ queue__count(const void *queue, size_t ring_size)
         }
         const queue_core_t *core = (const queue_core_t *)queue;
         /* Read head and tail once to get a consistent snapshot */
-        const size_t head = core->head;
-        const size_t tail = core->tail;
+        const size_t head = QUEUE__LOAD_ACQUIRE(&core->head);
+        const size_t tail = QUEUE__LOAD_ACQUIRE(&core->tail);
+        QUEUE__FENCE_AFTER_ACQUIRE();
         if (head >= tail) {
                 return head - tail;
         }
@@ -205,16 +275,17 @@ queue__enqueue(void *queue, size_t buffer_offset, size_t item_size,
         queue_core_t *core = (queue_core_t *)queue;
         unsigned char *buffer = (unsigned char *)queue + buffer_offset;
         queue_status_t status = QUEUE_STATUS_OK;
-        const size_t head = core->head;
-        const size_t tail = core->tail;
+        const size_t head = QUEUE__LOAD_RELAXED(&core->head);
+        const size_t tail = QUEUE__LOAD_ACQUIRE(&core->tail);
+        QUEUE__FENCE_AFTER_ACQUIRE();
         const size_t next_head = queue__next_index(head, ring_size);
         if (next_head == tail) {
                 QUEUE__HANDLE_FULL(core, ring_size, status);
         }
         if (status != QUEUE_STATUS_FULL) {
                 (void)memcpy(&buffer[head * item_size], item, item_size);
-                QUEUE_FENCE_RELEASE();
-                core->head = next_head;
+                QUEUE__FENCE_BEFORE_RELEASE();
+                QUEUE__STORE_RELEASE(&core->head, next_head);
         }
         return status;
 }
@@ -229,15 +300,15 @@ queue__dequeue(void *queue, size_t buffer_offset, size_t item_size,
         queue_core_t *core = (queue_core_t *)queue;
         const unsigned char *buffer =
             (const unsigned char *)queue + buffer_offset;
-        const size_t head = core->head;
-        const size_t tail = core->tail;
+        const size_t tail = QUEUE__LOAD_RELAXED(&core->tail);
+        const size_t head = QUEUE__LOAD_ACQUIRE(&core->head);
+        QUEUE__FENCE_AFTER_ACQUIRE();
         if (head == tail) {
                 return QUEUE_STATUS_EMPTY;
         }
-        QUEUE_FENCE_ACQUIRE();
         (void)memcpy(out, &buffer[tail * item_size], item_size);
-        QUEUE_FENCE_RELEASE();
-        core->tail = queue__next_index(tail, ring_size);
+        QUEUE__FENCE_BEFORE_RELEASE();
+        QUEUE__STORE_RELEASE(&core->tail, queue__next_index(tail, ring_size));
         return QUEUE_STATUS_OK;
 }
 
