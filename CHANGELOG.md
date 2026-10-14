@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Renamed `LICENCE` to `LICENSE`, standardised copyright text, switched the library target to `static_library`, installed public headers, and aligned Meson defaults with the primitive family baseline.
 
+### Fixed
+
+- `queue_version.h` now defines `QUEUE_VERSION` as a single string literal and `QUEUE_VERSION_MAJOR`, `_MINOR` and `_PATCH` as integers, so the macros compile when used.
+
 ## [1.2.4] - 2026-03-10
 
 ### Fixed
