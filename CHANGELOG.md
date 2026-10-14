@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- The CI coverage gate requires 100% line and branch coverage. Enqueue handles a full queue in a separate path per `QUEUE_OVERWRITE_ON_FULL` mode, so no branch is unreachable in either mode.
 - Renamed `LICENCE` to `LICENSE`, standardised copyright text, switched the library target to `static_library`, installed public headers, and aligned Meson defaults with the primitive family baseline.
 - Moved the queue logic out of `QUEUE_DEFINE` into type-erased core functions shared by every instantiation; the generated functions are typed wrappers that hold the critical section around each call. `head` and `tail` now live in a `core` member of the generated type, and the critical-section hooks also run for calls rejected with `QUEUE_STATUS_BAD_ARG`.
 

@@ -200,24 +200,6 @@ queue__next_index(size_t index, size_t ring_size)
         return index;
 }
 
-#if QUEUE_OVERWRITE_ON_FULL
-#define QUEUE__HANDLE_FULL(core, ring_size, status_var)                        \
-        do {                                                                   \
-                QUEUE__STORE_RELAXED(                                          \
-                    &(core)->tail,                                             \
-                    queue__next_index(QUEUE__LOAD_RELAXED(&(core)->tail),      \
-                                      (ring_size)));                           \
-                (status_var) = QUEUE_STATUS_OVERWROTE;                         \
-        } while (0)
-#else
-#define QUEUE__HANDLE_FULL(core, ring_size, status_var)                        \
-        do {                                                                   \
-                (void)(core);                                                  \
-                (void)(ring_size);                                             \
-                (status_var) = QUEUE_STATUS_FULL;                              \
-        } while (0)
-#endif
-
 /*
  * Type-erased core. `queue` points to a QUEUE_DEFINE instance, `buffer_offset`
  * is the offset of its element array, `item_size` the element size and
@@ -292,14 +274,25 @@ queue__enqueue(void *queue, size_t buffer_offset, size_t item_size,
         const size_t tail = QUEUE__LOAD_ACQUIRE(&core->tail);
         QUEUE__FENCE_AFTER_ACQUIRE();
         const size_t next_head = queue__next_index(head, ring_size);
+#if QUEUE_OVERWRITE_ON_FULL
         if (next_head == tail) {
-                QUEUE__HANDLE_FULL(core, ring_size, status);
+                /* Drop the oldest item; the caller excludes the consumer. */
+                QUEUE__STORE_RELAXED(&core->tail,
+                                     queue__next_index(tail, ring_size));
+                status = QUEUE_STATUS_OVERWROTE;
         }
-        if (status != QUEUE_STATUS_FULL) {
+        (void)memcpy(&buffer[head * item_size], item, item_size);
+        QUEUE__FENCE_BEFORE_RELEASE();
+        QUEUE__STORE_RELEASE(&core->head, next_head);
+#else
+        if (next_head == tail) {
+                status = QUEUE_STATUS_FULL;
+        } else {
                 (void)memcpy(&buffer[head * item_size], item, item_size);
                 QUEUE__FENCE_BEFORE_RELEASE();
                 QUEUE__STORE_RELEASE(&core->head, next_head);
         }
+#endif
         return status;
 }
 
