@@ -13,7 +13,7 @@ A deterministic, type-safe SPSC ring-buffer queue in C11 for embedded and safety
 - **Lock-free SPSC** — fail-on-full mode is lock-free for single-producer / single-consumer use when `size_t` loads/stores are atomic on the target.
 - **Memory ordering** — uses C11 `atomic_thread_fence` or GCC/Clang `__atomic_thread_fence` to handle weakly-ordered CPUs; falls back to compiler barriers.
 - **Critical section hooks** — `QUEUE_ENTER_CRITICAL` / `QUEUE_EXIT_CRITICAL` let you plug in interrupt disable or mutex locking for overwrite mode.
-- **MISRA-oriented** — no VLAs, no dynamic allocation, no undefined behaviour; suitable for IEC 61508 environments.
+- **Static storage** — no VLAs and no dynamic allocation.
 
 ## Installation
 
