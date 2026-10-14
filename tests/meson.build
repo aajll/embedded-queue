@@ -163,3 +163,30 @@ queue_test_unused_override_exe = executable(
   c_args: ['-Werror', '-Wunused-function'],
 )
 test('queue_test_unused_override', queue_test_unused_override_exe)
+
+# Overwrite mode without critical-section hooks must warn unless the consumer
+# declares a single execution context, selects fail-on-full or supplies hooks.
+cc = meson.get_compiler('c')
+if cc.get_id() in ['gcc', 'clang']
+  # Clang reports #pragma GCC warning in a group that -Werror leaves alone.
+  diag_werror = cc.get_id() == 'clang' ? ['-Werror=#pragma-messages'] : ['-Werror']
+  overwrite_diag_src = '''
+#include "queue_conf.h"
+#include "queue.h"
+int main(void) { return 0; }
+'''
+  assert(
+    not cc.compiles(overwrite_diag_src, args: diag_werror, include_directories: public_headers),
+    'overwrite mode without critical-section hooks must warn',
+  )
+  foreach opt_out : [
+    ['-DQUEUE_SINGLE_CONTEXT=1'],
+    ['-DQUEUE_OVERWRITE_ON_FULL=0'],
+    ['-DQUEUE_ENTER_CRITICAL()=(void)0', '-DQUEUE_EXIT_CRITICAL()=(void)0'],
+  ]
+    assert(
+      cc.compiles(overwrite_diag_src, args: diag_werror + opt_out, include_directories: public_headers),
+      'overwrite diagnostic must stay silent with ' + ' '.join(opt_out),
+    )
+  endforeach
+endif

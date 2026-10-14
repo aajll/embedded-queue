@@ -83,6 +83,23 @@
 #endif
 
 /*
+ * In overwrite mode a full enqueue moves `tail`, which the consumer also
+ * writes, so producer and consumer must exclude each other through the
+ * critical-section hooks. Define QUEUE_SINGLE_CONTEXT to 1 when one execution
+ * context performs every queue operation and no hooks are needed.
+ */
+#if (QUEUE_OVERWRITE_ON_FULL != 0) && defined(QUEUE__CRITICAL_DEFAULTED)       \
+    && (QUEUE_SINGLE_CONTEXT == 0)
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC warning                                                            \
+    "QUEUE_OVERWRITE_ON_FULL needs QUEUE_ENTER_CRITICAL/QUEUE_EXIT_CRITICAL, or QUEUE_SINGLE_CONTEXT=1"
+#elif defined(__TI_COMPILER_VERSION__)
+#warning                                                                       \
+    "QUEUE_OVERWRITE_ON_FULL needs QUEUE_ENTER_CRITICAL/QUEUE_EXIT_CRITICAL, or QUEUE_SINGLE_CONTEXT=1"
+#endif
+#endif
+
+/*
  * QUEUE__UNUSED marks every static inline function in this header and every
  * wrapper QUEUE_DEFINE generates. A consumer usually calls only some of them,
  * and the marker keeps the rest from raising unused-function diagnostics:

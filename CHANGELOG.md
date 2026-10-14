@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- A compile-time warning when `QUEUE_OVERWRITE_ON_FULL` is enabled with the default no-op critical-section hooks, on GCC, Clang and the TI compilers. Define `QUEUE_SINGLE_CONTEXT 1` when one execution context performs every queue operation.
 - ThreadSanitizer CI job, and tests that force the C11 and volatile backends.
 - Added changelog, contributor guide, security policy, standard CI workflow, installed version header, pkg-config metadata, README badge, SPDX headers, and registration for the previously skipped `test_queue_clear` test.
 

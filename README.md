@@ -86,7 +86,7 @@ This library targets **single-producer / single-consumer (SPSC)** use cases only
 - `size_t` loads and stores are naturally atomic on the target architecture.
 - The fence macros provide the required memory ordering.
 
-**Overwrite-on-full mode** (`QUEUE_OVERWRITE_ON_FULL 1`, default) is **not lock-free** because the producer may advance the consumer's `tail` index when the queue is full. If the producer and consumer can preempt each other (e.g. an ISR vs. a main loop), you must supply critical section macros:
+**Overwrite-on-full mode** (`QUEUE_OVERWRITE_ON_FULL 1`, default) is **not lock-free** because the producer may advance the consumer's `tail` index when the queue is full. If the producer and consumer can preempt each other (e.g. an ISR vs. a main loop), you must supply critical section macros. GCC, Clang and the TI compilers warn when overwrite mode is built with the default no-op hooks (GCC treats it as an error under `-Werror`; Clang only under `-Werror=#pragma-messages`); define `QUEUE_SINGLE_CONTEXT 1` instead when one execution context performs every queue operation.
 
 ```c
 #define QUEUE_ENTER_CRITICAL()  disable_interrupts()
@@ -107,6 +107,7 @@ the header or passed as `-D` flags on the compiler command line.
 | `QUEUE_MAX_CAPACITY` | Compile-time upper bound on capacity. The internal ring size is `capacity + 1U`; this guards against `size_t` overflow. Lower it to cap RAM usage project-wide. | `SIZE_MAX - 1U` |
 | `QUEUE_ENTER_CRITICAL()` | Hook called before any non-atomic read-modify-write in overwrite mode. | no-op |
 | `QUEUE_EXIT_CRITICAL()` | Hook called after the critical region exits. | no-op |
+| `QUEUE_SINGLE_CONTEXT` | `1` declares that one execution context performs every queue operation, which silences the overwrite-mode warning about missing hooks. | `0` |
 | `QUEUE_USE_GNU_ATOMICS` / `QUEUE_USE_C11_ATOMICS` / `QUEUE_USE_NO_ATOMICS` | Define one to force the index backend. `QUEUE_USE_NO_ATOMICS` is correct only where an aligned `size_t` access is indivisible and the fences below give the ordering the target needs, such as a single-core MCU. | first available of `__atomic`, `<stdatomic.h>`, volatile |
 | `QUEUE_FENCE_ACQUIRE()` | Acquire memory fence, used by the volatile backend. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
 | `QUEUE_FENCE_RELEASE()` | Release memory fence, used by the volatile backend. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |

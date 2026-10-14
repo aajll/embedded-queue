@@ -9,6 +9,7 @@
 #define QUEUE__UNUSED __attribute__((__unused__))
 #include <assert.h>
 #include <stdio.h>
+#define QUEUE_SINGLE_CONTEXT 1
 #include "queue_conf.h"
 #include "queue.h"
 

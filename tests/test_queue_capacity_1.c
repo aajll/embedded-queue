@@ -1,4 +1,5 @@
 #define QUEUE_OVERWRITE_ON_FULL 1
+#define QUEUE_SINGLE_CONTEXT 1
 #include "queue_conf.h"
 #include <assert.h>
 #include <stdio.h>
