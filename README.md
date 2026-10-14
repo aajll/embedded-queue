@@ -10,8 +10,8 @@ A deterministic, type-safe SPSC ring-buffer queue in C11 for embedded and safety
 - **Type-safe** — `QUEUE_DEFINE` generates a fully typed queue struct and API at compile time.
 - **Compile-time validation** — capacity overflow is caught with `_Static_assert` before any code runs.
 - **Configurable full-policy** — choose between overwrite-oldest (default) or fail-on-full modes.
-- **Lock-free SPSC** — fail-on-full mode is lock-free for single-producer / single-consumer use when `size_t` loads/stores are atomic on the target.
-- **Memory ordering** — uses C11 `atomic_thread_fence` or GCC/Clang `__atomic_thread_fence` to handle weakly-ordered CPUs; falls back to compiler barriers.
+- **Lock-free SPSC** — fail-on-full mode is lock-free for single-producer / single-consumer use; a compile-time check rejects targets where `size_t` atomics need a lock.
+- **Memory ordering** — `head` and `tail` are updated with acquire/release atomics through GCC/Clang `__atomic` builtins or C11 `<stdatomic.h>`; toolchains without atomics use a volatile backend ordered by configurable fences.
 - **Critical section hooks** — `QUEUE_ENTER_CRITICAL` / `QUEUE_EXIT_CRITICAL` let you plug in interrupt disable or mutex locking for overwrite mode.
 - **Static storage** — no VLAs and no dynamic allocation.
 
@@ -23,7 +23,7 @@ Copy two files into your project tree — no build system required:
 
 ```
 include/queue.h
-config/queue_conf.h
+include/queue_conf.h
 ```
 
 Place them so they are visible to your compiler, then include in order:
@@ -82,7 +82,7 @@ int main(void)
 
 This library targets **single-producer / single-consumer (SPSC)** use cases only.
 
-**Fail-on-full mode** (`QUEUE_OVERWRITE_ON_FULL 0`) is lock-free for SPSC provided:
+**Fail-on-full mode** (`QUEUE_OVERWRITE_ON_FULL 0`) is lock-free for SPSC. The atomic backends require lock-free `size_t` atomics, which a static assertion checks. The volatile backend (`QUEUE_USE_NO_ATOMICS`) requires instead:
 - `size_t` loads and stores are naturally atomic on the target architecture.
 - The fence macros provide the required memory ordering.
 
@@ -98,7 +98,7 @@ This library targets **single-producer / single-consumer (SPSC)** use cases only
 
 ## Configuration
 
-All macros live in `config/queue_conf.h` and can be overridden before including
+All macros live in `include/queue_conf.h` and can be overridden before including
 the header or passed as `-D` flags on the compiler command line.
 
 | Macro | Description | Default |
@@ -107,8 +107,9 @@ the header or passed as `-D` flags on the compiler command line.
 | `QUEUE_MAX_CAPACITY` | Compile-time upper bound on capacity. The internal ring size is `capacity + 1U`; this guards against `size_t` overflow. Lower it to cap RAM usage project-wide. | `SIZE_MAX - 1U` |
 | `QUEUE_ENTER_CRITICAL()` | Hook called before any non-atomic read-modify-write in overwrite mode. | no-op |
 | `QUEUE_EXIT_CRITICAL()` | Hook called after the critical region exits. | no-op |
-| `QUEUE_FENCE_ACQUIRE()` | Acquire memory fence. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
-| `QUEUE_FENCE_RELEASE()` | Release memory fence. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
+| `QUEUE_USE_GNU_ATOMICS` / `QUEUE_USE_C11_ATOMICS` / `QUEUE_USE_NO_ATOMICS` | Define one to force the index backend. `QUEUE_USE_NO_ATOMICS` is correct only where an aligned `size_t` access is indivisible and the fences below give the ordering the target needs, such as a single-core MCU. | first available of `__atomic`, `<stdatomic.h>`, volatile |
+| `QUEUE_FENCE_ACQUIRE()` | Acquire memory fence, used by the volatile backend. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
+| `QUEUE_FENCE_RELEASE()` | Release memory fence, used by the volatile backend. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
 | `QUEUE_FENCE_SEQ_CST()` | Sequential-consistency fence. Also aliased as `QUEUE_BARRIER()`. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
 
 ## Building

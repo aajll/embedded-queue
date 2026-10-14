@@ -24,48 +24,79 @@
 #define QUEUE_MAX_CAPACITY (SIZE_MAX - 1U)
 #endif
 
-/* Memory ordering fences - override before including queue_impl.h */
-#ifndef QUEUE_FENCE_ACQUIRE
+/*
+ * Atomic backend for the head and tail indices. Define exactly one of
+ * QUEUE_USE_GNU_ATOMICS, QUEUE_USE_C11_ATOMICS or QUEUE_USE_NO_ATOMICS to
+ * override automatic selection, which tries in order:
+ *   GCC/Clang __atomic builtins -> C11 <stdatomic.h> -> volatile.
+ *
+ * QUEUE_USE_NO_ATOMICS stores the indices in volatile objects and orders
+ * them with QUEUE_FENCE_ACQUIRE / QUEUE_FENCE_RELEASE. It is correct only
+ * when a naturally aligned size_t load or store is indivisible and the
+ * fences provide the ordering the target needs, for example a single-core
+ * MCU whose toolchain has no atomics.
+ */
+#if !defined(QUEUE_USE_GNU_ATOMICS) && !defined(QUEUE_USE_C11_ATOMICS)         \
+    && !defined(QUEUE_USE_NO_ATOMICS)
 #if defined(__GNUC__) || defined(__clang__)
-#define QUEUE_FENCE_ACQUIRE() __atomic_thread_fence(__ATOMIC_ACQUIRE)
+#define QUEUE_USE_GNU_ATOMICS 1
 #elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)               \
     && !defined(__STDC_NO_ATOMICS__)
-#define QUEUE_FENCE_ACQUIRE() atomic_thread_fence(memory_order_acquire)
+#define QUEUE_USE_C11_ATOMICS 1
 #else
-#define QUEUE_FENCE_ACQUIRE()                                                  \
+#define QUEUE_USE_NO_ATOMICS 1
+#endif
+#endif
+
+#if (defined(QUEUE_USE_GNU_ATOMICS) + defined(QUEUE_USE_C11_ATOMICS)           \
+     + defined(QUEUE_USE_NO_ATOMICS))                                          \
+    != 1
+#error "queue: define exactly one atomic backend"
+#endif
+
+#if defined(QUEUE_USE_C11_ATOMICS)
+#include <stdatomic.h>
+#endif
+
+/*
+ * Memory ordering fences. The atomic backends order the indices with
+ * acquire loads and release stores; the core uses these fences only with
+ * QUEUE_USE_NO_ATOMICS. Override to supply a target-specific barrier.
+ */
+#if defined(QUEUE_USE_GNU_ATOMICS)
+#define QUEUE__DEFAULT_FENCE_ACQUIRE() __atomic_thread_fence(__ATOMIC_ACQUIRE)
+#define QUEUE__DEFAULT_FENCE_RELEASE() __atomic_thread_fence(__ATOMIC_RELEASE)
+#define QUEUE__DEFAULT_FENCE_SEQ_CST() __atomic_thread_fence(__ATOMIC_SEQ_CST)
+#elif defined(QUEUE_USE_C11_ATOMICS)
+#define QUEUE__DEFAULT_FENCE_ACQUIRE() atomic_thread_fence(memory_order_acquire)
+#define QUEUE__DEFAULT_FENCE_RELEASE() atomic_thread_fence(memory_order_release)
+#define QUEUE__DEFAULT_FENCE_SEQ_CST() atomic_thread_fence(memory_order_seq_cst)
+#elif defined(__GNUC__) || defined(__clang__)
+#define QUEUE__DEFAULT_FENCE_ACQUIRE() __asm__ volatile("" : : : "memory")
+#define QUEUE__DEFAULT_FENCE_RELEASE() __asm__ volatile("" : : : "memory")
+#define QUEUE__DEFAULT_FENCE_SEQ_CST() __asm__ volatile("" : : : "memory")
+#else
+#define QUEUE__DEFAULT_FENCE_ACQUIRE()                                         \
+        do {                                                                   \
+        } while (0)
+#define QUEUE__DEFAULT_FENCE_RELEASE()                                         \
+        do {                                                                   \
+        } while (0)
+#define QUEUE__DEFAULT_FENCE_SEQ_CST()                                         \
         do {                                                                   \
         } while (0)
 #endif
+
+#ifndef QUEUE_FENCE_ACQUIRE
+#define QUEUE_FENCE_ACQUIRE() QUEUE__DEFAULT_FENCE_ACQUIRE()
 #endif
 
 #ifndef QUEUE_FENCE_RELEASE
-#if defined(__GNUC__) || defined(__clang__)
-#define QUEUE_FENCE_RELEASE() __atomic_thread_fence(__ATOMIC_RELEASE)
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)               \
-    && !defined(__STDC_NO_ATOMICS__)
-#define QUEUE_FENCE_RELEASE() atomic_thread_fence(memory_order_release)
-#else
-#define QUEUE_FENCE_RELEASE()                                                  \
-        do {                                                                   \
-        } while (0)
-#endif
+#define QUEUE_FENCE_RELEASE() QUEUE__DEFAULT_FENCE_RELEASE()
 #endif
 
 #ifndef QUEUE_FENCE_SEQ_CST
-#if defined(__GNUC__) || defined(__clang__)
-#define QUEUE_FENCE_SEQ_CST() __atomic_thread_fence(__ATOMIC_SEQ_CST)
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)               \
-    && !defined(__STDC_NO_ATOMICS__)
-#define QUEUE_FENCE_SEQ_CST() atomic_thread_fence(memory_order_seq_cst)
-#else
-#if defined(__GNUC__) || defined(__clang__)
-#define QUEUE_FENCE_SEQ_CST() __asm__ volatile("" : : : "memory")
-#else
-#define QUEUE_FENCE_SEQ_CST()                                                  \
-        do {                                                                   \
-        } while (0)
-#endif
-#endif
+#define QUEUE_FENCE_SEQ_CST() QUEUE__DEFAULT_FENCE_SEQ_CST()
 #endif
 
 /* Backwards-compatible barrier name */
