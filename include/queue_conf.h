@@ -19,6 +19,14 @@
 #define QUEUE_OVERWRITE_ON_FULL 1
 #endif
 
+/*
+ * 1 when one execution context performs every queue operation, so overwrite
+ * mode needs no critical-section hooks.
+ */
+#ifndef QUEUE_SINGLE_CONTEXT
+#define QUEUE_SINGLE_CONTEXT 0
+#endif
+
 /* Maximum capacity to prevent integer overflow */
 #ifndef QUEUE_MAX_CAPACITY
 #define QUEUE_MAX_CAPACITY (SIZE_MAX - 1U)
@@ -104,11 +112,15 @@
 #define QUEUE_BARRIER() QUEUE_FENCE_SEQ_CST()
 #endif
 
-/* Critical section macros - override for thread-safety */
+/*
+ * Critical section macros - override for thread-safety. Overwrite mode
+ * requires them unless QUEUE_SINGLE_CONTEXT is 1.
+ */
 #ifndef QUEUE_ENTER_CRITICAL
 #define QUEUE_ENTER_CRITICAL()                                                 \
         do {                                                                   \
         } while (0)
+#define QUEUE__CRITICAL_DEFAULTED 1
 #endif
 
 #ifndef QUEUE_EXIT_CRITICAL
