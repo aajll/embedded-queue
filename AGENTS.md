@@ -48,7 +48,7 @@ Coverage commands are in `CONTRIBUTING.md`.
 
 - The queue is header-only: `QUEUE_DEFINE` generates `static inline` code in the caller's translation unit. `src/queue.c` only includes the headers so the build has a library target.
 - `queue_conf.h` must be included before `queue.h`. Keep a blank line between the two includes so include sorting cannot swap them.
-- `meson setup` generates `queue_version.h` into the build directory; `queue.h` does not include it. The build installs `libqueue.a`, headers under `queue/`, and `queue.pc`. The only Meson option is `build_tests`.
+- `include/queue.h` defines the version macros, and `meson setup` fails when they differ from `project(version:)`, so a release updates both. `include/queue_version.h` is a deprecated header that includes `queue_conf.h` and `queue.h`. The build installs `libqueue.a`, headers under `queue/`, and `queue.pc`. The only Meson option is `build_tests`.
 - `misra.toml` defines `SIZE_MAX` for the analysis, because cppcheck does not read the system `<stdint.h>` and `queue.h` stops at `#error` without it.
 
 ---

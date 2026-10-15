@@ -119,7 +119,7 @@ On a target where `CHAR_BIT` is 16, `sizeof` counts 16-bit words and `size_t` is
 
 ## MISRA C:2023
 
-The library is analysed with [`misch`](https://pypi.org/project/misch/), a cppcheck-based MISRA C:2023 checker, once for each atomic backend. The analysis covers `src/queue.c`, which includes both headers but expands no `QUEUE_DEFINE`, so the generated wrappers are checked only as macro text. Each backend has its own baseline of accepted findings in `analysis/baseline/`, and CI fails on any finding outside it.
+The library is analysed with [`misch`](https://pypi.org/project/misch/), a cppcheck-based MISRA C:2023 checker, once for each atomic backend. The analysis covers `src/queue.c`, which includes both headers but expands no `QUEUE_DEFINE`, so the generated wrappers are checked only as macro text. Each backend has its own baseline of accepted findings in `analysis/baseline/`, and CI fails on any finding outside it. The version macros in `queue.h` carry an inline deviation of Rule 2.5 (unused macro), because they exist for consumers and the library does not use them.
 
 | Rule | `__atomic` | C11 | Volatile | Cause |
 | --- | --- | --- | --- | --- |
