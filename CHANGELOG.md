@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `docs/integration.md`, `docs/api.md` and `docs/design.md`, covering installation and configuration, the API, the ring, the atomic backends and memory ordering, the full policies and critical sections, the footprint, failure behaviour, the MISRA baselines and verification. The README is now a short landing page with a quick start whose output is checked, and a `queue docs examples` test compiles every C block in the README, `CONTRIBUTING.md` and `docs/`.
 - A compile-time warning when `QUEUE_OVERWRITE_ON_FULL` is enabled with the default no-op critical-section hooks, on GCC, Clang and the TI compilers. Define `QUEUE_SINGLE_CONTEXT 1` when one execution context performs every queue operation.
 - ThreadSanitizer CI job, and tests that force the C11 and volatile backends.
 - Added changelog, contributor guide, security policy, standard CI workflow, installed version header, pkg-config metadata, README badge, SPDX headers, and registration for the previously skipped `test_queue_clear` test.

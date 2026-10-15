@@ -166,6 +166,35 @@ queue_test_unused_override_exe = executable(
 )
 test('queue_test_unused_override', queue_test_unused_override_exe)
 
+# Every C code block in the README, CONTRIBUTING.md and docs/ compiles against
+# the public headers, so a documented signature cannot drift from the code.
+# Each document includes the headers itself, because a block may configure
+# the queue before queue_conf.h.
+python = import('python').find_installation('python3')
+
+test(
+  'queue docs examples',
+  python,
+  args: [
+    files('docs/check_snippets.py'),
+    '--root', meson.project_source_root(),
+    '--lang', 'c',
+    '--',
+  ] + meson.get_compiler('c').cmd_array() + [
+    '-std=c11',
+    '-Wall',
+    '-Wextra',
+    '-Wpedantic',
+    '-Werror',
+    '-Wno-unused-function',
+    '-Wno-unused-variable',
+    '-I' + (meson.project_source_root() / 'include'),
+    '-c', '{source}', '-o', '{object}',
+  ],
+  suite: 'docs',
+  timeout: 60,
+)
+
 # Overwrite mode without critical-section hooks must warn unless the consumer
 # declares a single execution context, selects fail-on-full or supplies hooks.
 cc = meson.get_compiler('c')
