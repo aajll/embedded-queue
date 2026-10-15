@@ -1,8 +1,11 @@
+/* SPDX-License-Identifier: MIT */
+
 #define QUEUE_OVERWRITE_ON_FULL 0
+#include "queue_conf.h"
 #include <assert.h>
 #include <pthread.h>
 #include <stdio.h>
-#include "queue_conf.h"
+
 #include "queue.h"
 
 #define MT_COUNT 1000000

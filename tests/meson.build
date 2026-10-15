@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 queue_test_overwrite_exe = executable(
   'queue_test_overwrite',
   'test_queue.c',

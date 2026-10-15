@@ -1,0 +1,59 @@
+{
+  "schema": "misch/baseline@2",
+  "fingerprints": {
+    "18c8ac4014c9": {
+      "rule_id": "misra-c2012-2.5",
+      "file": "include/queue_conf.h",
+      "message": "misra violation (use --rule-texts=<file> to get proper output)",
+      "count": 7
+    },
+    "4c86601d6e1f": {
+      "rule_id": "misra-c2012-2.5",
+      "file": "include/queue.h",
+      "message": "misra violation (use --rule-texts=<file> to get proper output)",
+      "count": 2
+    },
+    "5a65e79cf5a1": {
+      "rule_id": "misra-c2012-11.5",
+      "file": "include/queue.h",
+      "message": "misra violation (use --rule-texts=<file> to get proper output)",
+      "count": 8
+    },
+    "67d056fa6a79": {
+      "rule_id": "misra-c2012-17.3",
+      "file": "include/queue.h",
+      "message": "misra violation (use --rule-texts=<file> to get proper output)",
+      "count": 16
+    },
+    "7139f00e6eef": {
+      "rule_id": "misra-c2012-15.5",
+      "file": "include/queue.h",
+      "message": "misra violation (use --rule-texts=<file> to get proper output)",
+      "count": 8
+    },
+    "84c7d0a13bc8": {
+      "rule_id": "misra-c2012-20.10",
+      "file": "include/queue.h",
+      "message": "misra violation (use --rule-texts=<file> to get proper output)",
+      "count": 2
+    },
+    "93824fbc42f7": {
+      "rule_id": "misra-c2012-18.4",
+      "file": "include/queue.h",
+      "message": "misra violation (use --rule-texts=<file> to get proper output)",
+      "count": 2
+    },
+    "9e3a25a5b984": {
+      "rule_id": "misra-c2012-20.7",
+      "file": "include/queue.h",
+      "message": "misra violation (use --rule-texts=<file> to get proper output)",
+      "count": 2
+    },
+    "b7478515e220": {
+      "rule_id": "misra-c2012-17.8",
+      "file": "include/queue.h",
+      "message": "misra violation (use --rule-texts=<file> to get proper output)",
+      "count": 2
+    }
+  }
+}

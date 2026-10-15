@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- CI installs Meson, Ninja and gcovr with `uv` instead of `pip`, checks formatting with the clang-format release pinned in `scripts/format.sh`, runs a MISRA C:2023 analysis with `misch` for each atomic backend against baselines in `analysis/baseline/` that record the existing findings, and builds the library and a `QUEUE_DEFINE` instantiation with TI C2000 CGT 22.6.2 and 25.11.1 under the COFF and EABI object formats, with warnings as errors. The Meson files and tests carry SPDX licence headers.
 - The CI coverage gate requires 100% line and branch coverage. Enqueue handles a full queue in a separate path per `QUEUE_OVERWRITE_ON_FULL` mode, so no branch is unreachable in either mode.
 - Renamed `LICENCE` to `LICENSE`, standardised copyright text, switched the library target to `static_library`, installed public headers, and aligned Meson defaults with the primitive family baseline.
 - Moved the queue logic out of `QUEUE_DEFINE` into type-erased core functions shared by every instantiation; the generated functions are typed wrappers that hold the critical section around each call. `head` and `tail` now live in a `core` member of the generated type, and the critical-section hooks also run for calls rejected with `QUEUE_STATUS_BAD_ARG`.
