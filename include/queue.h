@@ -41,6 +41,29 @@
 #include <stdint.h>
 #include <string.h>
 
+/**
+ * @name Version
+ * @brief Release of this header, for diagnostics and @c #if checks.
+ *
+ * @details
+ *    @c QUEUE_VERSION_NUMBER is @c MAJOR*10000 @c + @c MINOR*100
+ *    @c + @c PATCH with type @c long, so it cannot overflow where @c int is
+ *    16 bits. The Meson build fails to configure when these values differ
+ *    from the project version.
+ * @{
+ */
+/* cppcheck-suppress-begin misra-c2012-2.5 ; @deviation Public version macros
+ * for consumer diagnostics and #if checks; the library does not use them. */
+#define QUEUE_VERSION_MAJOR 1
+#define QUEUE_VERSION_MINOR 2
+#define QUEUE_VERSION_PATCH 6
+#define QUEUE_VERSION       "1.2.6"
+#define QUEUE_VERSION_NUMBER                                                   \
+        ((QUEUE_VERSION_MAJOR * 10000L) + (QUEUE_VERSION_MINOR * 100L)         \
+         + QUEUE_VERSION_PATCH)
+/* cppcheck-suppress-end misra-c2012-2.5 ; @deviation As above. */
+/** @} */
+
 /* SIZE_MAX must be defined before using it in assertions */
 #if !defined(SIZE_MAX)
 #error "SIZE_MAX not defined - requires <stdint.h> or <limits.h>"

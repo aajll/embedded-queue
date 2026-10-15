@@ -31,7 +31,7 @@ Put their directory on the include path and include them in this order, with any
 
 `queue.h` stops with `#error` if `queue_conf.h` has not been included. Keep the blank line between the two includes if your formatter sorts includes, because sorting works only within a block.
 
-`queue_version.h` exists only in Meson builds, which generate it.
+`queue.h` defines the version macros described in [api.md](api.md#version).
 
 ## Meson subproject
 
@@ -52,7 +52,7 @@ meson install -C build
 cc app.c $(pkg-config --cflags --libs queue) -o app
 ```
 
-The install contains `queue.h`, `queue_conf.h` and `queue_version.h` in a `queue/` subdirectory of the include directory, the static archive `libqueue.a`, and `queue.pc`. The `pkg-config` flags put `queue/` on the include path, so `#include "queue.h"` works unchanged. `queue_version.h` defines `QUEUE_VERSION` as the version string and `QUEUE_VERSION_MAJOR`, `QUEUE_VERSION_MINOR` and `QUEUE_VERSION_PATCH` as integers.
+The install contains `queue.h` and `queue_conf.h` in a `queue/` subdirectory of the include directory, the static archive `libqueue.a`, and `queue.pc`. The `pkg-config` flags put `queue/` on the include path, so `#include "queue.h"` works unchanged. `queue_version.h` is installed beside them as a deprecated header that includes both.
 
 ## Configuration
 
