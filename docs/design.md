@@ -35,22 +35,24 @@ The producer and consumer exchange items through the indices, so each index upda
 
 1. `QUEUE_USE_GNU_ATOMICS` — the `__atomic` builtins, on GCC and Clang.
 2. `QUEUE_USE_C11_ATOMICS` — `_Atomic size_t` and `<stdatomic.h>`, on a C11 compiler that does not define `__STDC_NO_ATOMICS__`.
-3. `QUEUE_USE_NO_ATOMICS` — `volatile size_t` and explicit fences, everywhere else.
+3. `QUEUE_USE_NO_ATOMICS` — `volatile size_t`, volatile item copies and optional fences, everywhere else.
 
 Both atomic backends end in a `_Static_assert` that `size_t` atomics are always lock-free on the target, because a lock-based atomic could deadlock when an interrupt handler interrupts the main loop inside one. A target that fails it must use the volatile backend.
 
 ### Volatile backend
 
-The volatile backend loads and stores the indices as plain `volatile` accesses. `QUEUE_FENCE_ACQUIRE()` follows each load of the other side's index, and `QUEUE_FENCE_RELEASE()` precedes each store of its own. It is correct only where an aligned `size_t` load or store is indivisible and the fences order the item copy against the index accesses, which holds for two contexts on one core, such as an interrupt handler and a main loop. On a target where `CHAR_BIT` is 16, `size_t` is usually two memory words wide, so it must be loaded and stored by one instruction.
+The volatile backend loads and stores the indices as plain `volatile` accesses and copies each item byte by byte through `volatile` lvalues. C keeps volatile accesses in program order but lets a compiler move ordinary accesses across them, so a `memcpy` into the slot could be emitted after the `head` store, and the consumer would then read a slot before its item is written. With the copy itself volatile, the item stays between the index accesses on every compiler. The TI C28x compiler documents both halves of this: it "will not reorder two volatile accesses, but it may reorder a volatile and a non-volatile access" (SPRU514AA, J.3.10), and "the number of volatile reads and writes will be exactly as they appear in the C/C++ code, no more and no less and in the same order" (SPRU514AA, §6.5.5).
 
-The default fences depend on the compiler:
+The backend is correct only where an aligned `size_t` load or store is indivisible and the two contexts need no hardware barrier between them, which holds for two contexts on one core, such as an interrupt handler and a main loop. On a target where `CHAR_BIT` is 16, `size_t` is usually two memory words wide, so it must be loaded and stored by one instruction.
+
+`QUEUE_FENCE_ACQUIRE()` follows each load of the other side's index, and `QUEUE_FENCE_RELEASE()` precedes each store of its own. They are the place for a target-specific hardware barrier and are not needed for compiler ordering. The defaults depend on the compiler:
 
 | Compiler | Default fences |
 | --- | --- |
 | GCC or Clang, volatile backend forced | `__asm__ volatile("" ::: "memory")`, a compiler barrier |
 | Any other | Empty |
 
-With empty fences, nothing in C stops the compiler from moving the non-volatile item copy past the volatile index store, and the consumer would then read a slot before its item is written. Define `QUEUE_FENCE_ACQUIRE()` and `QUEUE_FENCE_RELEASE()` as the toolchain's compiler barrier on such a compiler, or confirm in the generated code that the copy precedes the store. The fences never need to be hardware barriers on a single core.
+The TI compilers offer no compiler barrier that could serve as a default: they reject the GCC `"memory"` clobber, may "significantly rearrange the code order" around an `__asm` statement (SPRU514AA, §6.8), and do not support the C11 atomic operations (SPRU514AA, §6.1).
 
 ## Full policies
 
@@ -124,7 +126,7 @@ The library is analysed with [`misch`](https://pypi.org/project/misch/), a cppch
 | --- | --- | --- | --- | --- |
 | 17.3 | 16 | 0 | 0 | Calls to the GCC `__atomic` builtins, which the checker treats as undeclared functions. |
 | 2.5 | 9 | 9 | 7 | Macros not used in the analysed code: the backend selection, default fences, `QUEUE_DEFINE` and `QUEUE_CLEAR`. |
-| 11.5 | 8 | 8 | 8 | Conversions from `void *` to the index and byte pointers in the type-erased functions. |
+| 11.5 | 8 | 8 | 10 | Conversions from `void *` to the index and byte pointers in the type-erased functions and the volatile item copy. |
 | 15.5 | 8 | 8 | 8 | Early returns on NULL arguments and on an empty queue. |
 | 13.4 | 0 | 0 | 5 | Index stores of the volatile backend, assignments used as expressions inside the store macro. |
 | 12.1 | 0 | 3 | 0 | Operator precedence in the C11 backend's lock-free `_Static_assert`. |
@@ -152,4 +154,4 @@ The tests run on the host:
 
 At configure time, the test build also checks that the overwrite-mode warning fires without hooks and stays silent with each way of silencing it.
 
-CI runs every test under AddressSanitizer and UndefinedBehaviorSanitizer and again under ThreadSanitizer, gates line and branch coverage of `src/` and `include/` at 100 percent, builds the library in release mode, checks formatting, and runs the MISRA analysis for each backend. It also compiles the library, and `tests/test_queue_wrap.c` in both full policies, with warnings as errors under TI C2000 CGT 22.6.2 and 25.11.1, in both the COFF and EABI formats. Those compilers select the volatile backend with empty default fences; at `-O4`, both releases emit the item copy as a `memcpy` call that precedes the `head` store.
+CI runs every test under AddressSanitizer and UndefinedBehaviorSanitizer and again under ThreadSanitizer, gates line and branch coverage of `src/` and `include/` at 100 percent, builds the library in release mode, checks formatting, and runs the MISRA analysis for each backend. It also compiles the library, and `tests/test_queue_wrap.c` in both full policies, with warnings as errors under TI C2000 CGT 22.6.2 and 25.11.1, in both the COFF and EABI formats. Those compilers select the volatile backend, whose volatile item copy keeps the copy before the index store.

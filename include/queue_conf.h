@@ -38,11 +38,11 @@
  * override automatic selection, which tries in order:
  *   GCC/Clang __atomic builtins -> C11 <stdatomic.h> -> volatile.
  *
- * QUEUE_USE_NO_ATOMICS stores the indices in volatile objects and orders
- * them with QUEUE_FENCE_ACQUIRE / QUEUE_FENCE_RELEASE. It is correct only
- * when a naturally aligned size_t load or store is indivisible and the
- * fences provide the ordering the target needs, for example a single-core
- * MCU whose toolchain has no atomics.
+ * QUEUE_USE_NO_ATOMICS accesses the indices and copies the items through
+ * volatile lvalues, which C keeps in program order. It is correct only when
+ * a naturally aligned size_t load or store is indivisible and the target
+ * needs no hardware barrier between the two contexts, or the fences supply
+ * one, for example a single-core MCU whose toolchain has no atomics.
  */
 #if !defined(QUEUE_USE_GNU_ATOMICS) && !defined(QUEUE_USE_C11_ATOMICS)         \
     && !defined(QUEUE_USE_NO_ATOMICS)
@@ -69,7 +69,8 @@
 /*
  * Memory ordering fences. The atomic backends order the indices with
  * acquire loads and release stores; the core uses these fences only with
- * QUEUE_USE_NO_ATOMICS. Override to supply a target-specific barrier.
+ * QUEUE_USE_NO_ATOMICS, where the volatile accesses already fix the order
+ * the compiler emits. Override to supply a target-specific hardware barrier.
  */
 #if defined(QUEUE_USE_GNU_ATOMICS)
 #define QUEUE__DEFAULT_FENCE_ACQUIRE() __atomic_thread_fence(__ATOMIC_ACQUIRE)

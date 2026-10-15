@@ -141,7 +141,7 @@ Each macro is defined in `queue_conf.h` behind an `#ifndef` guard and is overrid
 | `QUEUE_SINGLE_CONTEXT` | `0` | `1` declares that one execution context performs every queue operation, which silences the warning for overwrite mode without hooks. |
 | `QUEUE_MAX_CAPACITY` | `SIZE_MAX - 1U` | Largest capacity `QUEUE_DEFINE` accepts. Lower it to cap queue sizes across a project. |
 | `QUEUE_USE_GNU_ATOMICS`, `QUEUE_USE_C11_ATOMICS`, `QUEUE_USE_NO_ATOMICS` | the first available | Define one to choose how the indices are accessed; see [design.md](design.md#atomic-backends). |
-| `QUEUE_FENCE_ACQUIRE()`, `QUEUE_FENCE_RELEASE()` | the backend's fence | Order item copies against index accesses under `QUEUE_USE_NO_ATOMICS` only. |
+| `QUEUE_FENCE_ACQUIRE()`, `QUEUE_FENCE_RELEASE()` | the backend's fence | Target-specific barrier around the index accesses, used under `QUEUE_USE_NO_ATOMICS` only. |
 | `QUEUE_FENCE_SEQ_CST()` | the backend's fence | Full fence. The queue does not use it; `QUEUE_BARRIER()` is a deprecated alias. |
 | `QUEUE__UNUSED` | `__attribute__((unused))` on GCC, Clang and TI compilers, otherwise empty | Marks every generated function so that unused ones raise no diagnostic. |
 
