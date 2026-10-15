@@ -29,7 +29,8 @@
  * Main).
  *
  * Safety considerations:
- * - Capacity must be <= QUEUE_MAX_CAPACITY and < SIZE_MAX (ring_size = cap + 1)
+ * - Capacity must be > 0, <= QUEUE_MAX_CAPACITY and < SIZE_MAX
+ *   (ring_size = cap + 1)
  * - Override QUEUE_MAX_CAPACITY to set a project-specific safe limit
  */
 
@@ -368,6 +369,7 @@ queue__dequeue(void *queue, size_t buffer_offset, size_t item_size,
  * `capacity` is the usable element capacity.
  *
  * Compile-time assertions:
+ * - capacity must be > 0
  * - capacity must be <= QUEUE_MAX_CAPACITY
  * - ring_size = capacity + 1U must not overflow size_t
  *
@@ -376,6 +378,7 @@ queue__dequeue(void *queue, size_t buffer_offset, size_t item_size,
  * may refer to anything declared before QUEUE_DEFINE.
  */
 #define QUEUE_DEFINE(name, type, capacity)                                     \
+        _Static_assert(((size_t)(capacity)) > 0U, "QUEUE_CAPACITY_ZERO");      \
         _Static_assert(((size_t)(capacity)) <= ((size_t)QUEUE_MAX_CAPACITY),   \
                        "QUEUE_CAPACITY_EXCEEDS_MAXIMUM");                      \
         _Static_assert(((size_t)(capacity)) < SIZE_MAX,                        \

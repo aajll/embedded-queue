@@ -15,9 +15,8 @@ QUEUE_DEFINE(test_normal_q, int, 10)
 /* Test 2: Large capacity should work (within limits) */
 QUEUE_DEFINE(test_large_q, int, 1000)
 
-/* Test 3: Zero capacity - this should fail at compile time with _Static_assert
- */
-/* QUEUE_DEFINE(test_zero_q, int, 0) */
+/* Test 3: a zero capacity fails at compile time; tests/meson.build checks
+ * tests/compile_fail_zero_capacity.c. */
 
 int
 main(void)
