@@ -1,216 +1,82 @@
 # embedded-queue
 
 [![CI](https://github.com/aajll/embedded-queue/actions/workflows/ci.yml/badge.svg)](https://github.com/aajll/embedded-queue/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A deterministic, type-safe SPSC ring-buffer queue in C11 for embedded and safety-critical systems.
+**A C11 single-producer, single-consumer ring buffer whose storage lives in the queue instance, typed at compile time by one macro, with no heap.**
 
-## Features
+## Quick start
 
-- **No dynamic memory** — storage is embedded directly in the queue instance; no `malloc` / `free`.
-- **Type-safe** — `QUEUE_DEFINE` generates a fully typed queue struct and API at compile time.
-- **Compile-time validation** — capacity overflow is caught with `_Static_assert` before any code runs.
-- **Configurable full-policy** — choose between overwrite-oldest (default) or fail-on-full modes.
-- **Lock-free SPSC** — fail-on-full mode is lock-free for single-producer / single-consumer use; a compile-time check rejects targets where `size_t` atomics need a lock.
-- **Memory ordering** — `head` and `tail` are updated with acquire/release atomics through GCC/Clang `__atomic` builtins or C11 `<stdatomic.h>`; toolchains without atomics use a volatile backend ordered by configurable fences.
-- **Critical section hooks** — `QUEUE_ENTER_CRITICAL` / `QUEUE_EXIT_CRITICAL` let you plug in interrupt disable or mutex locking for overwrite mode.
-- **Static storage** — no VLAs and no dynamic allocation.
-
-## Installation
-
-### Copy-in (recommended for embedded targets)
-
-Copy two files into your project tree — no build system required:
-
-```
-include/queue.h
-include/queue_conf.h
-```
-
-Place them so they are visible to your compiler, then include in order:
-
-```c
-#include "queue_conf.h"   /* must come first */
-#include "queue.h"
-```
-
-### Meson subproject
-
-Add this repo as a wrap dependency or subproject. The library exposes a
-`queue_dep` dependency object that carries the correct include paths:
-
-```meson
-queue_dep = dependency('embedded-queue', fallback : ['embedded-queue', 'queue_dep'])
-```
-
-## Quick Start
+Copy `include/queue_conf.h` and `include/queue.h` into your project. For a Meson subproject or an installed package, see the [integration guide](docs/integration.md).
 
 ```c
 #include <stdint.h>
+#include <stdio.h>
+
+#define QUEUE_OVERWRITE_ON_FULL 0 /* fail on full instead of overwriting */
 #include "queue_conf.h"
+
 #include "queue.h"
 
-typedef struct {
-        uint32_t id;
-        uint8_t  dlc;
-        uint8_t  data[8];
-} can_msg_t;
+/* sample_queue_t and its functions, for two uint16_t items. */
+QUEUE_DEFINE(sample_queue, uint16_t, 2)
 
-/* Define a typed queue of 16 CAN messages — validated at compile time. */
-QUEUE_DEFINE(can_msg_queue, can_msg_t, 16)
+static sample_queue_t samples;
 
-int main(void)
+int
+main(void)
 {
-        can_msg_queue_t q = {0};
-        queue_status_t  st;
-        can_msg_t       tx = {.id = 0x123U, .dlc = 8U, .data = {0}};
-        can_msg_t       rx;
+        uint16_t sample = 0U;
 
-        can_msg_queue_init(&q);
+        sample_queue_init(&samples);
 
-        st = can_msg_queue_enqueue(&q, &tx);
-
-        if (can_msg_queue_dequeue(&q, &rx) == QUEUE_STATUS_OK) {
-                /* process rx */
+        /* Prints "enqueue 1: 0", "enqueue 2: 0", then "enqueue 3: 2",
+         * QUEUE_STATUS_FULL, because the queue holds two items. */
+        for (uint16_t i = 1U; i <= 3U; i++) {
+                printf("enqueue %u: %d\n", (unsigned)i,
+                       (int)sample_queue_enqueue(&samples, &i));
         }
 
-        can_msg_queue_clear(&q);
+        /* Prints "dequeue 1" and "dequeue 2", oldest first. */
+        while (sample_queue_dequeue(&samples, &sample) == QUEUE_STATUS_OK) {
+                printf("dequeue %u\n", (unsigned)sample);
+        }
         return 0;
 }
 ```
 
-## Concurrency
+`queue_conf.h` must come before `queue.h`; the blank line between them keeps include sorting from swapping them.
 
-This library targets **single-producer / single-consumer (SPSC)** use cases only.
+## Description
 
-**Fail-on-full mode** (`QUEUE_OVERWRITE_ON_FULL 0`) is lock-free for SPSC. The atomic backends require lock-free `size_t` atomics, which a static assertion checks. The volatile backend (`QUEUE_USE_NO_ATOMICS`) requires instead:
-- `size_t` loads and stores are naturally atomic on the target architecture.
-- The fence macros provide the required memory ordering.
+`QUEUE_DEFINE(name, type, capacity)` generates a structure `name_t`, holding the head and tail indices and an array of `capacity + 1` items, and typed functions to initialise, enqueue, dequeue, count and clear it. Every queue copies items in and out by value, and every function finishes in constant time.
 
-**Overwrite-on-full mode** (`QUEUE_OVERWRITE_ON_FULL 1`, default) is **not lock-free** because the producer may advance the consumer's `tail` index when the queue is full. If the producer and consumer can preempt each other (e.g. an ISR vs. a main loop), you must supply critical section macros. GCC, Clang and the TI compilers warn when overwrite mode is built with the default no-op hooks (GCC treats it as an error under `-Werror`; Clang only under `-Werror=#pragma-messages`); define `QUEUE_SINGLE_CONTEXT 1` instead when one execution context performs every queue operation.
+- One producer and one consumer, such as an interrupt handler and a main loop, with acquire and release ordering on the indices through the GCC `__atomic` builtins, C11 `<stdatomic.h>`, or volatile accesses and configurable fences
+- A full policy chosen at build time: overwrite the oldest item, or reject the new one
+- Critical-section hooks for overwrite mode, where the producer also moves the consumer's index, and a compile-time warning when overwrite mode is built without them
+- Capacity checked by `_Static_assert`, and every pointer argument checked at run time
+- Tests under ASan, UBSan and ThreadSanitizer with 100% line and branch coverage, and MISRA C:2023 analysis with [`misch`](https://pypi.org/project/misch/) for each atomic backend
 
-```c
-#define QUEUE_ENTER_CRITICAL()  disable_interrupts()
-#define QUEUE_EXIT_CRITICAL()   enable_interrupts()
-#define QUEUE_OVERWRITE_ON_FULL 1
-#include "queue_conf.h"
-#include "queue.h"
-```
+## Validated toolchains
 
-## Configuration
+| Toolchain               | Target                        | Validation                                                     |
+| ----------------------- | ----------------------------- | -------------------------------------------------------------- |
+| GCC                     | x86_64 Linux                  | All tests, all three atomic backends                           |
+| DSP vendor C11 compiler | 16-bit MAU (`CHAR_BIT == 16`) | Library and a `QUEUE_DEFINE` compile, both full policies, two object formats |
 
-All macros live in `include/queue_conf.h` and can be overridden before including
-the header or passed as `-D` flags on the compiler command line.
+Target linking and execution belong to the consuming firmware. See [cross builds](docs/integration.md#cross-builds).
 
-| Macro | Description | Default |
-|---|---|---|
-| `QUEUE_OVERWRITE_ON_FULL` | `1`: enqueue overwrites oldest item on full, returns `QUEUE_STATUS_OVERWROTE`. `0`: enqueue fails, returns `QUEUE_STATUS_FULL` (lock-free SPSC safe). | `1` |
-| `QUEUE_MAX_CAPACITY` | Compile-time upper bound on capacity. The internal ring size is `capacity + 1U`; this guards against `size_t` overflow. Lower it to cap RAM usage project-wide. | `SIZE_MAX - 1U` |
-| `QUEUE_ENTER_CRITICAL()` | Hook called before any non-atomic read-modify-write in overwrite mode. | no-op |
-| `QUEUE_EXIT_CRITICAL()` | Hook called after the critical region exits. | no-op |
-| `QUEUE_SINGLE_CONTEXT` | `1` declares that one execution context performs every queue operation, which silences the overwrite-mode warning about missing hooks. | `0` |
-| `QUEUE_USE_GNU_ATOMICS` / `QUEUE_USE_C11_ATOMICS` / `QUEUE_USE_NO_ATOMICS` | Define one to force the index backend. `QUEUE_USE_NO_ATOMICS` is correct only where an aligned `size_t` access is indivisible and the fences below give the ordering the target needs, such as a single-core MCU. | first available of `__atomic`, `<stdatomic.h>`, volatile |
-| `QUEUE_FENCE_ACQUIRE()` | Acquire memory fence, used by the volatile backend. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
-| `QUEUE_FENCE_RELEASE()` | Release memory fence, used by the volatile backend. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
-| `QUEUE_FENCE_SEQ_CST()` | Sequential-consistency fence. `QUEUE_BARRIER()` is a deprecated alias. | `atomic_thread_fence` / `__atomic_thread_fence` / compiler barrier |
+## Documentation
 
-## Building
+- [Integration guide](docs/integration.md) — copy-in, Meson subproject, installed package, configuration, building, and cross builds
+- [API reference](docs/api.md) — `QUEUE_DEFINE`, the generated functions, status codes, the configuration macros, and recipes
+- [Design](docs/design.md) — the ring, the atomic backends and memory ordering, the full policies and critical sections, the footprint, failure behaviour, and verification
+- [Changelog](CHANGELOG.md) — release history
 
-```sh
-# Library only (release)
-meson setup build --buildtype=release -Dbuild_tests=false
-meson compile -C build
+## Contributing
 
-# With unit tests
-meson setup build --buildtype=debug -Dbuild_tests=true
-meson compile -C build
-meson test -C build
-```
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request. Report security issues as described in [SECURITY.md](.github/SECURITY.md).
 
-## Notes
+## License
 
-| Topic | Note |
-|---|---|
-| **Memory** | All storage lives inside the queue instance. The instance must outlive any producer or consumer that references it. |
-| **Thread safety** | SPSC only. Multi-producer or multi-consumer use requires external locking. |
-| **Full policy** | Choose fail-on-full for lock-free SPSC; choose overwrite-on-full (with critical sections) for lossy sensor or logging pipelines where the newest data matters most. |
-| **Toolchains** | GCC, Clang and the TI C2000 compiler build without unused-function diagnostics when a consumer calls only some generated helpers. The TI compiler predefines `__STDC_NO_ATOMICS__`, so it selects the volatile backend. For another toolchain, define `QUEUE__UNUSED` before including `queue.h`. |
-| **Error handling** | All functions return `queue_status_t`; no `errno`, no exceptions. |
-| **WCET** | All operations are O(1) with no branching on the data path beyond the full/empty check. |
-| **`count()` under concurrency** | In fail-on-full lock-free mode, `count()` is not a stable snapshot but is guaranteed to remain within `[0, capacity]`. |
-
-## API Reference
-
-### Status codes
-
-All functions that can fail return a `queue_status_t`:
-
-| Value | Name | Meaning |
-|---|---|---|
-| `0` | `QUEUE_STATUS_OK` | Operation succeeded |
-| `1` | `QUEUE_STATUS_EMPTY` | Dequeue attempted on an empty queue |
-| `2` | `QUEUE_STATUS_FULL` | Enqueue attempted on a full queue (fail-on-full mode only) |
-| `3` | `QUEUE_STATUS_BAD_ARG` | A required pointer argument was `NULL` |
-| `4` | `QUEUE_STATUS_OVERWROTE` | Enqueue succeeded by overwriting the oldest item (overwrite mode only) |
-
-### Queue definition
-
-```c
-QUEUE_DEFINE(name, type, capacity)
-```
-
-Defines a new queue type `name_t` and its complete API. `capacity` must be a
-compile-time constant greater than zero and no larger than `QUEUE_MAX_CAPACITY`.
-A `_Static_assert` fires at compile time if either constraint is violated.
-
-### Initialisation
-
-```c
-void name_init(name_t *q);
-```
-
-Reset `head` and `tail` to zero. Call once before first use, or to re-use a
-queue after `name_clear()`.
-
-### Enqueue / Dequeue
-
-```c
-queue_status_t name_enqueue(name_t *q, const type *item);
-queue_status_t name_dequeue(name_t *q, type *out);
-```
-
-`enqueue` copies `*item` into the next available slot. In overwrite mode it
-advances `tail` on full and returns `QUEUE_STATUS_OVERWROTE`; in fail-on-full
-mode it returns `QUEUE_STATUS_FULL` without modifying the queue. Both return
-`QUEUE_STATUS_BAD_ARG` if any pointer is `NULL`.
-
-`dequeue` copies the oldest item into `*out` and advances `tail`. Returns
-`QUEUE_STATUS_EMPTY` if the queue is empty, `QUEUE_STATUS_BAD_ARG` if any
-pointer is `NULL`.
-
-### Query functions
-
-```c
-bool   name_is_empty(const name_t *q);
-bool   name_is_full (const name_t *q);
-size_t name_count   (const name_t *q);
-size_t name_capacity(void);
-```
-
-`capacity()` is a compile-time constant wrapped in a function for uniformity.
-`count()` reads `head` and `tail` snapshots and returns the number of items
-currently in the queue.
-
-### Clear
-
-```c
-void name_clear(name_t *q);
-```
-
-Reset `head` and `tail` to zero without touching the buffer contents.
-
-```c
-QUEUE_CLEAR(name, q)
-```
-
-Generic macro equivalent to `name_clear(q)`. Useful when the queue type name is
-itself a macro parameter.
+MIT. See [LICENSE](LICENSE).
