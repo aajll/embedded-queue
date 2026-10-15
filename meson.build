@@ -49,7 +49,7 @@ queue_lib = static_library(
 
 # Install public headers
 install_headers(
-  ['include/queue.h', 'include/queue_conf.h', 'include/queue_version.h'],
+  ['include/queue.h', 'include/queue_conf.h'],
   subdir: 'queue',
 )
 

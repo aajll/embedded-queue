@@ -52,7 +52,7 @@ meson install -C build
 cc app.c $(pkg-config --cflags --libs queue) -o app
 ```
 
-The install contains `queue.h` and `queue_conf.h` in a `queue/` subdirectory of the include directory, the static archive `libqueue.a`, and `queue.pc`. The `pkg-config` flags put `queue/` on the include path, so `#include "queue.h"` works unchanged. `queue_version.h` is installed beside them as a deprecated header that includes both.
+The install contains `queue.h` and `queue_conf.h` in a `queue/` subdirectory of the include directory, the static archive `libqueue.a`, and `queue.pc`. The `pkg-config` flags put `queue/` on the include path, so `#include "queue.h"` works unchanged.
 
 ## Configuration
 

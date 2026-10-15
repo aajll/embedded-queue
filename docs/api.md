@@ -182,5 +182,3 @@ _Static_assert(sizeof(frame_queue_t) <= 192U, "frame queue exceeds its RAM budge
 #error "queue 1.2.6 or later is required"
 #endif
 ```
-
-`queue_version.h` is a deprecated header that includes `queue_conf.h` and `queue.h`, kept so existing includes compile until the next major release.
