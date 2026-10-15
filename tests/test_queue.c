@@ -7,7 +7,6 @@
 #include "queue_conf.h"
 
 #include "queue.h"
-#include "queue_version.h"
 
 typedef struct {
         uint32_t id;
@@ -42,8 +41,7 @@ make_can_msg(uint32_t id, uint8_t seed)
 int
 main(void)
 {
-        /* The deprecated version header still exposes the macros from
-         * queue.h. */
+        /* The version number agrees with its parts. */
         assert(QUEUE_VERSION_NUMBER
                == ((QUEUE_VERSION_MAJOR * 10000L) + (QUEUE_VERSION_MINOR * 100L)
                    + QUEUE_VERSION_PATCH));
