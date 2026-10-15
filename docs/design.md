@@ -109,8 +109,7 @@ On a target where `CHAR_BIT` is 16, `sizeof` counts 16-bit words and `size_t` is
 | NULL queue to a query | `is_empty` returns true, `is_full` false and `count` 0. |
 | `enqueue` on a full queue | `QUEUE_STATUS_OVERWROTE` after discarding the oldest item, or `QUEUE_STATUS_FULL` with the queue unchanged. |
 | `dequeue` on an empty queue | `QUEUE_STATUS_EMPTY`; `*out` is not written. |
-| Capacity above `QUEUE_MAX_CAPACITY` | Compile error from a `_Static_assert`. |
-| Capacity 0 | Compiles. The queue is always both empty and full; `enqueue` returns `QUEUE_STATUS_OVERWROTE` or `QUEUE_STATUS_FULL` and stores nothing. |
+| Capacity 0, or above `QUEUE_MAX_CAPACITY` | Compile error from a `_Static_assert`. |
 | `queue.h` included without `queue_conf.h`, or two `QUEUE_USE_*` macros | Compile error. |
 | Atomic backend on a target without lock-free `size_t` atomics | Compile error from a `_Static_assert`. |
 | Overwrite mode without hooks, contexts that preempt each other | A dequeue can return a partly overwritten item, and an update of `tail` can be lost. |

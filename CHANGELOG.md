@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - ThreadSanitizer CI job, and tests that force the C11 and volatile backends.
 - Added changelog, contributor guide, security policy, standard CI workflow, installed version header, pkg-config metadata, README badge, SPDX headers, and registration for the previously skipped `test_queue_clear` test.
 
+### Fixed
+
+- `QUEUE_DEFINE` rejects a capacity of 0 with a `_Static_assert`. Such a queue compiled, but was always both empty and full and stored nothing. A configure-time check and the TI C2000 CI job prove the rejection.
+
 ### Changed
 
 - `queue.h` defines `QUEUE_VERSION_MAJOR`, `_MINOR`, `_PATCH`, `QUEUE_VERSION` and a new `QUEUE_VERSION_NUMBER` (`long`, `MAJOR * 10000 + MINOR * 100 + PATCH`), so a copied-in header carries its version. Meson fails to configure when the header and `project(version:)` disagree, and the build needs Meson 0.57 or later.

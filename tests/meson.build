@@ -195,9 +195,24 @@ test(
   timeout: 60,
 )
 
+# QUEUE_DEFINE rejects a capacity of 0, while the same source with a
+# capacity of 1 compiles.
+cc = meson.get_compiler('c')
+zero_capacity_src = files('compile_fail_zero_capacity.c')
+assert(
+  not cc.compiles(zero_capacity_src, include_directories: public_headers),
+  'QUEUE_DEFINE must reject a capacity of 0',
+)
+assert(
+  cc.compiles(
+    fs.read('compile_fail_zero_capacity.c').replace('zero_q, int, 0', 'one_q, int, 1'),
+    include_directories: public_headers,
+  ),
+  'QUEUE_DEFINE must accept a capacity of 1',
+)
+
 # Overwrite mode without critical-section hooks must warn unless the consumer
 # declares a single execution context, selects fail-on-full or supplies hooks.
-cc = meson.get_compiler('c')
 if cc.get_id() in ['gcc', 'clang']
   # Clang reports #pragma GCC warning in a group that -Werror leaves alone.
   diag_werror = cc.get_id() == 'clang' ? ['-Werror=#pragma-messages'] : ['-Werror']

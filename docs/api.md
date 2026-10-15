@@ -36,7 +36,7 @@ The hooks expand as two statements in the same block of each generated `enqueue`
 QUEUE_DEFINE(name, type, capacity)
 ```
 
-`QUEUE_DEFINE` defines a structure type `name_t` and the functions below at file scope, all `static inline`. `type` is any complete object type, and `capacity` is an integer constant expression for the number of items the queue holds. A `_Static_assert` stops the build if `capacity` exceeds `QUEUE_MAX_CAPACITY`. Use a capacity of at least 1: a capacity of 0 compiles, but the queue is then always both empty and full and stores nothing.
+`QUEUE_DEFINE` defines a structure type `name_t` and the functions below at file scope, all `static inline`. `type` is any complete object type, and `capacity` is an integer constant expression for the number of items the queue holds. `_Static_assert`s stop the build if `capacity` is 0 or exceeds `QUEUE_MAX_CAPACITY`.
 
 ```c
 typedef struct {
