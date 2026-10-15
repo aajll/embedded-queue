@@ -41,7 +41,7 @@ Put the repository in `subprojects/embedded-queue`, as a checkout or through a w
 queue_dep = dependency('queue', fallback: ['embedded-queue', 'queue_dep'])
 ```
 
-`dependency('queue')` finds an installed package through `pkg-config`, and otherwise falls back to the subproject. `queue_dep` adds `include/` and links `libqueue.a`, which holds no queue code; every function is generated in the file that calls `QUEUE_DEFINE`. The only option is `build_tests` (default `false`), which builds the unit tests and the documentation example test.
+`dependency('queue')` finds an installed package through `pkg-config`, and otherwise falls back to the subproject. Once the subproject is configured it registers `queue_dep` as both `queue` and `embedded-queue`, so other subprojects in the same build get it from `dependency('queue')` or `dependency('embedded-queue')` without a fallback. `queue_dep` adds `include/` and links `libqueue.a`, which holds no queue code; every function is generated in the file that calls `QUEUE_DEFINE`. The only option is `build_tests` (default `false`), which builds the unit tests and the documentation example test.
 
 ## Installed package
 
@@ -53,6 +53,8 @@ cc app.c $(pkg-config --cflags --libs queue) -o app
 ```
 
 The install contains `queue.h` and `queue_conf.h` in a `queue/` subdirectory of the include directory, the static archive `libqueue.a`, and `queue.pc`. The `pkg-config` flags put `queue/` on the include path, so `#include "queue.h"` works unchanged.
+
+The installed names are `queue` rather than `embedded-queue` by decision: the archive is a static library usually installed to a cross-compilation prefix, where a collision with another `queue` package is unlikely, and renaming would break every installed consumer's include and link lines.
 
 ## Configuration
 

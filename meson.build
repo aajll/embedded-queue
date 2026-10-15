@@ -58,6 +58,11 @@ queue_dep = declare_dependency(
   link_with: queue_lib,
 )
 
+# Registered under the pkg-config name and the repository name, so any project
+# in the build finds queue_dep through either without a fallback.
+meson.override_dependency('queue', queue_dep)
+meson.override_dependency('embedded-queue', queue_dep)
+
 # === pkg-config ===============================================================
 
 pkgconfig = import('pkgconfig')

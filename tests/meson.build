@@ -1,5 +1,13 @@
 # SPDX-License-Identifier: MIT
 
+# Both registered names resolve to queue_dep without a fallback.
+foreach name : ['queue', 'embedded-queue']
+  assert(
+    dependency(name, allow_fallback: false).type_name() == 'internal',
+    'dependency(\'' + name + '\') must resolve to the registered queue_dep',
+  )
+endforeach
+
 queue_test_overwrite_exe = executable(
   'queue_test_overwrite',
   'test_queue.c',
