@@ -1,7 +1,10 @@
+/* SPDX-License-Identifier: MIT */
+
 #define QUEUE_OVERWRITE_ON_FULL 0
 #include "queue_conf.h"
 #include <assert.h>
 #include <stdio.h>
+
 #include "queue.h"
 
 QUEUE_DEFINE(immediate_q, int, 5)

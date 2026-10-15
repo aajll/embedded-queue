@@ -1,7 +1,10 @@
+/* SPDX-License-Identifier: MIT */
+
 #include <assert.h>
 #include <stdint.h>
 #define QUEUE_SINGLE_CONTEXT 1
 #include "queue_conf.h"
+
 #include "queue.h"
 
 typedef struct {

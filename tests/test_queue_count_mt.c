@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+
 /*
  * test_queue_count_mt.c
  *
@@ -8,11 +10,12 @@
  * when head and tail are read exactly once.
  */
 #define QUEUE_OVERWRITE_ON_FULL 0
+#include "queue_conf.h"
 #include <assert.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdio.h>
-#include "queue_conf.h"
+
 #include "queue.h"
 
 #include <stdio.h>

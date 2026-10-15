@@ -1,7 +1,10 @@
+/* SPDX-License-Identifier: MIT */
+
+#include "queue_conf.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "queue_conf.h"
+
 #include "queue.h"
 
 typedef struct {

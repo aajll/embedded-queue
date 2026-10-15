@@ -24,6 +24,22 @@ meson compile -C build
 meson test -C build --verbose
 ```
 
+#### MISRA C:2023, one run per atomic backend (reads `build/compile_commands.json`)
+
+```sh
+env -u MISRA_RULE_TEXTS misch run --baseline
+env -u MISRA_RULE_TEXTS misch run --baseline --profile c11
+env -u MISRA_RULE_TEXTS misch run --baseline --profile no_atomics
+misch deviations
+```
+
+#### Formatting (pinned clang-format through `uvx`)
+
+```sh
+scripts/format.sh          # check, as CI does
+scripts/format.sh --fix    # rewrite in place
+```
+
 #### Notes
 
 - `meson setup` generates the optional `queue_version.h` into the **build directory**.
@@ -34,8 +50,8 @@ meson test -C build --verbose
 
 - CI definitions live in `.github/workflows/ci.yml`.
 - Prefer running the same commands locally as CI runs (see §1.1 above).
-- If `pre-commit` is configured, run `pre-commit run --all-files` before
-  committing.
+- Install Python tools (Meson, Ninja, gcovr, misch) with `uv tool install`, never `pip`; CI does the same through `astral-sh/setup-uv`.
+- `misch run --baseline` must pass against `analysis/baseline/` for every backend profile. Never regenerate a baseline to admit a new finding.
 
 ---
 
@@ -55,8 +71,7 @@ meson test -C build --verbose
 
 ### Formatting
 
-- `.clang-format` is present and **mandatory**. Run `clang-format -i` on all
-  modified `.c` / `.h` files before committing.
+- `.clang-format` is present and **mandatory**. Run `scripts/format.sh --fix` before committing; it runs the clang-format release pinned in the script through `uvx`. Keep a blank line between `#include "queue_conf.h"` and `#include "queue.h"` so include sorting cannot reorder them.
 - Do not reformat unrelated code.
 - Key settings: 8-space indent, `BreakBeforeBraces: Linux`, column limit 80.
 

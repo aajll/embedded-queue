@@ -13,4 +13,5 @@
 /* No queue is instantiated here, so no critical-section hooks are needed. */
 #define QUEUE_SINGLE_CONTEXT 1
 #include "queue_conf.h"
+
 #include "queue.h"

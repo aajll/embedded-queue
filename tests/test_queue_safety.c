@@ -1,9 +1,12 @@
+/* SPDX-License-Identifier: MIT */
+
 /* test_queue_safety.c - Tests for the fixed safety issues */
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
 #define QUEUE_SINGLE_CONTEXT 1
 #include "queue_conf.h"
+
 #include "queue.h"
 
 /* Test 1: Normal capacity should work */
