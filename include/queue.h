@@ -192,6 +192,28 @@
 #define QUEUE__FENCE_BEFORE_RELEASE()  QUEUE_FENCE_RELEASE()
 #endif
 
+/*
+ * Item copy for the selected backend. The volatile backend copies through
+ * volatile lvalues, because C orders volatile accesses against each other
+ * but not against ordinary ones: the copy then stays between the index
+ * accesses on every compiler, whatever the fences expand to.
+ */
+#if defined(QUEUE_USE_NO_ATOMICS)
+static inline QUEUE__UNUSED void
+queue__copy_item(void *dst, const void *src, size_t size)
+{
+        volatile unsigned char *const to = (volatile unsigned char *)dst;
+        const volatile unsigned char *const from =
+            (const volatile unsigned char *)src;
+        for (size_t i = 0U; i < size; i++) {
+                to[i] = from[i];
+        }
+}
+#define QUEUE__COPY_ITEM(dst, src, size) queue__copy_item((dst), (src), (size))
+#else
+#define QUEUE__COPY_ITEM(dst, src, size) ((void)memcpy((dst), (src), (size)))
+#endif
+
 #if defined(QUEUE_USE_GNU_ATOMICS)
 /* __atomic_always_lock_free is a compile-time constant but not a standard
  * integer constant expression, so -Wpedantic objects to it inside
@@ -322,14 +344,14 @@ queue__enqueue(void *queue, size_t buffer_offset, size_t item_size,
                                      queue__next_index(tail, ring_size));
                 status = QUEUE_STATUS_OVERWROTE;
         }
-        (void)memcpy(&buffer[head * item_size], item, item_size);
+        QUEUE__COPY_ITEM(&buffer[head * item_size], item, item_size);
         QUEUE__FENCE_BEFORE_RELEASE();
         QUEUE__STORE_RELEASE(&core->head, next_head);
 #else
         if (next_head == tail) {
                 status = QUEUE_STATUS_FULL;
         } else {
-                (void)memcpy(&buffer[head * item_size], item, item_size);
+                QUEUE__COPY_ITEM(&buffer[head * item_size], item, item_size);
                 QUEUE__FENCE_BEFORE_RELEASE();
                 QUEUE__STORE_RELEASE(&core->head, next_head);
         }
@@ -353,7 +375,7 @@ queue__dequeue(void *queue, size_t buffer_offset, size_t item_size,
         if (head == tail) {
                 return QUEUE_STATUS_EMPTY;
         }
-        (void)memcpy(out, &buffer[tail * item_size], item_size);
+        QUEUE__COPY_ITEM(out, &buffer[tail * item_size], item_size);
         QUEUE__FENCE_BEFORE_RELEASE();
         QUEUE__STORE_RELEASE(&core->tail, queue__next_index(tail, ring_size));
         return QUEUE_STATUS_OK;

@@ -23,7 +23,7 @@
       "rule_id": "misra-c2012-11.5",
       "file": "include/queue.h",
       "message": "misra violation (use --rule-texts=<file> to get proper output)",
-      "count": 8
+      "count": 10
     },
     "7139f00e6eef": {
       "rule_id": "misra-c2012-15.5",

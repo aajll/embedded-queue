@@ -126,6 +126,6 @@ The test suite forces each atomic backend and each full policy in separate execu
 
 The consuming firmware owns its cross file, linker command file, and memory placement. No cross file ships with this project.
 
-CI compiles the library and a `QUEUE_DEFINE` instantiation with warnings as errors using two releases of a vendor C11 compiler for a 16-bit-MAU DSP target, under both of its object formats and in both full policies. That compiler has no `<stdatomic.h>` and is neither GCC nor Clang, so it selects the volatile backend, and the default fences are empty; [design.md](design.md#volatile-backend) says what to define. This covers the source dialect and type assumptions only; linking and execution remain checks for the consumer.
+CI compiles the library and a `QUEUE_DEFINE` instantiation with warnings as errors using two releases of a vendor C11 compiler for a 16-bit-MAU DSP target, under both of its object formats and in both full policies. That compiler has no `<stdatomic.h>` and is neither GCC nor Clang, so it selects the volatile backend, whose volatile item copy needs no compiler barrier; [design.md](design.md#volatile-backend) gives the ordering argument. This covers the source dialect and type assumptions only; linking and execution remain checks for the consumer.
 
 On such a target `CHAR_BIT` is 16 and `sizeof` counts 16-bit words. [design.md](design.md#footprint) gives the size of a queue there.

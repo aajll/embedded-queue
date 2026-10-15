@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - `QUEUE_DEFINE` rejects a capacity of 0 with a `_Static_assert`. Such a queue compiled, but was always both empty and full and stored nothing. A configure-time check and the TI C2000 CI job prove the rejection.
+- The volatile backend copies items through volatile lvalues, so the copy stays ordered against the volatile index accesses on compilers without a default compiler barrier, including the TI compilers that always select this backend. A `memcpy` could be moved past the `head` store, letting an interrupting consumer read a slot before its item was written.
 
 ### Changed
 
