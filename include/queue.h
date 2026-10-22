@@ -56,9 +56,9 @@
 /* cppcheck-suppress-begin misra-c2012-2.5 ; @deviation Public version macros
  * for consumer diagnostics and #if checks; the library does not use them. */
 #define QUEUE_VERSION_MAJOR 1
-#define QUEUE_VERSION_MINOR 2
-#define QUEUE_VERSION_PATCH 6
-#define QUEUE_VERSION       "1.2.6"
+#define QUEUE_VERSION_MINOR 3
+#define QUEUE_VERSION_PATCH 0
+#define QUEUE_VERSION       "1.3.0"
 #define QUEUE_VERSION_NUMBER                                                   \
         ((QUEUE_VERSION_MAJOR * 10000L) + (QUEUE_VERSION_MINOR * 100L)         \
          + QUEUE_VERSION_PATCH)
