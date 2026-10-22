@@ -170,15 +170,15 @@ _Static_assert(sizeof(frame_queue_t) <= 192U, "frame queue exceeds its RAM budge
 <!-- snippet: skip -->
 ```c
 #define QUEUE_VERSION_MAJOR 1
-#define QUEUE_VERSION_MINOR 2
-#define QUEUE_VERSION_PATCH 6
-#define QUEUE_VERSION "1.2.6"
+#define QUEUE_VERSION_MINOR 3
+#define QUEUE_VERSION_PATCH 0
+#define QUEUE_VERSION "1.3.0"
 ```
 
 `QUEUE_VERSION_NUMBER` is `MAJOR * 10000 + MINOR * 100 + PATCH` as a `long`, so it holds any version where `int` is 16 bits. Compare it in the preprocessor to require a minimum release:
 
 ```c
-#if QUEUE_VERSION_NUMBER < 10206L
-#error "queue 1.2.6 or later is required"
+#if QUEUE_VERSION_NUMBER < 10300L
+#error "queue 1.3.0 or later is required"
 #endif
 ```
